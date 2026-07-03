@@ -1,894 +1,343 @@
 ---
 name: tav-workflow
-description: Use when implementing scoped code changes, bug fixes, configuration updates, feature adjustments, or local refactors that need analysis, execution, and verification. Do not use for full-project rewrites, migrations, or large transformations that need spec-driven planning first.
-version: 3.0.0
+description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
+version: 3.1.0
 ---
 
-# TAV Workflow — Three-Role Collaboration
+# TAV Workflow - Think, Act, Verify
 
-Structured three-role collaboration ensuring every change has independent perspectives for thinking, execution, and verification. This workflow uses automated agent orchestration with state persistence and quality gates.
+TAV is a disciplined workflow for changing software safely. It separates three responsibilities:
 
-**TAV = Think-Act-Verify**
+1. **Thinker** - gather evidence, diagnose, and plan.
+2. **Actor** - make only the planned changes.
+3. **Verifier** - independently check correctness, side effects, and quality gates.
+
+Use this skill to prevent unplanned edits, hidden assumptions, and unverified completion claims.
+
+---
 
 ## Trigger Conditions
 
-**Must use this Skill when:**
-- Code modifications (bug fixes, feature adjustments, refactoring)
-- New feature development
-- Configuration changes
-- User says "help me change", "fix this", "implement a feature"
+### Use this skill for
 
-**Use spec-driven-develop instead when:**
-- The task is a full-project rewrite, migration, framework/language rebuild, architecture overhaul, or multi-phase transformation
-- The user asks for “spec-driven”, “rewrite”, “migrate”, “overhaul”, “重写”, “迁移”, “重构”, or “大规模” work
-- Success requires project-wide analysis and a task plan before any coding begins
+- Bug fixes.
+- Scoped feature implementation.
+- Configuration updates.
+- Local refactors with a known target.
+- Dependency or workflow adjustments.
+- User requests such as "fix", "change", "implement", "add", "update", or equivalent Chinese phrasing.
 
-**No need to use when:**
-- Pure information queries ("what does this code do")
-- Simple file reads
-- Single-file operations with clear instructions requiring no analysis
+### Do not use this skill for
 
-### TAV vs Spec-Driven
-
-| Need | Use |
-|------|-----|
-| Scoped bug fix, feature tweak, config change | `tav-workflow` |
-| Local refactor with known target | `tav-workflow` |
-| Project rewrite, migration, rebuild, architecture overhaul | `spec-driven-develop` |
-| Need docs/analysis/plan/progress before coding | `spec-driven-develop` |
+- Pure read-only explanations or repository searches.
+- Trivial single-step edits that need no analysis.
+- Full-project rewrites, migrations, framework rebuilds, schema overhauls, or broad transformations. Use `spec-driven-develop` first, then apply TAV to each scoped task.
 
 ---
 
-## Before You Begin: Continuity Check
+## Task Tiering
 
-**CRITICAL**: Before starting any phase, check if `.tav/state.json` exists in the project root.
+Choose the smallest workflow that is still safe.
 
-- If it **exists**: Read it immediately. You are resuming an in-progress workflow. Identify which phase you are in, what has been completed, and continue from the exact point where the previous conversation left off. Do NOT restart from Phase 1.
-- If it **does not exist**: This is a fresh start. Proceed to Phase 1.
+| Tier | Scope | Required workflow |
+|------|-------|-------------------|
+| L0 | Micro change, localized single-file patch, simple config value | Lightweight TAV: evidence, edit, baseline verification |
+| L1 | Standard bug fix or feature touching multiple files | Full TAV: Thinker plan, Actor implementation, quality gates, Verifier review |
+| L2 | Architecture, migration, auth overhaul, database schema, distributed flow | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV |
 
-After loading state, populate the platform's native task tracking tool (TodoWrite) with pending tasks from the current phase. This gives the user real-time visual progress.
-
----
-
-## Configuration
-
-| Setting | Default | Purpose |
-|:--------|:--------|:--------|
-| State file | `.tav/state.json` | Cross-conversation state persistence |
-| Max Thinker rounds | 3 | Clarification limit before escalation |
-| Max Actor-Verifier loops | 3 | Fix iteration limit before re-analysis |
-| Token budget - Thinker | 10,000 | Analysis phase token limit |
-| Token budget - Actor | 8,000 | Execution phase token limit |
-| Token budget - Verifier | 5,000 | Review phase token limit |
-| Quality gate | Enabled | Automated checks after Actor phase |
+When unsure, choose the higher tier.
 
 ---
 
-## Role Definitions
+## Phase 0: Continuity Check
 
-### Thinker (Analyst)
+Before any analysis or edits, check for `.tav/state.json` in the target project root.
 
-**Responsibilities:** Requirement breakdown, code reading, evidence gathering, execution planning
+- If it exists and is relevant to the current task, load it and resume from `current_phase`.
+- If it exists but describes a different task, ask the user before replacing or archiving it.
+- If it does not exist, start a fresh workflow.
 
-**Core Principles:**
-- Read code first, conclude later — never assume without evidence
-- Read all relevant files in parallel to reduce rounds
-- Every conclusion must be backed by code location
-
-**Tools:**
-- `Read` — Read relevant code files
-- `Grep` — Search keywords for positioning
-- `Glob` — Find related files
-- `Bash` — Run diagnostic commands (git status, git log, etc.)
-
-**Output Requirements:**
-- Evidence summary: Files read and key findings
-- Todo-list: Each item must include `file:line - specific action`
-- Risk notes: Identify potential side effects or compatibility issues
-
----
-
-### Actor (Executor)
-
-**Responsibilities:** Execute minimal changes strictly following the Todo-list
-
-**Core Principles:**
-- Minimal change principle — only modify what's directly required
-- No extra refactoring, comments, or formatting changes
-- Each Edit/Write changes only one logical point
-- Maintain existing code style consistency
-
-**Tools:**
-- `Edit` — Modify existing files (preferred)
-- `Write` — Create new files (when necessary)
-- No additional exploration unless the plan is incomplete; if incomplete, stop and return to Thinker
-
-**Output Requirements:**
-- Concisely report each Edit/Write result
-- Stop immediately and return to Thinker phase if Todo-list doesn't cover encountered situations
-
----
-
-### Verifier (Reviewer)
-
-**Responsibilities:** Validate correctness, check side effects, confirm completion
-
-**Core Principles:**
-- Independent verification — never assume Actor did it right
-- Global perspective — check impact on surrounding code
-- Security review — focus on edge cases and exception paths
-
-**Tools:**
-- `Read` — Read modified file fragments
-- `Grep` — Check for missed references
-- `Bash` — Run tests, type checks
-
-**Review Checklist:**
-1. [ ] Does the change implement what Thinker analyzed
-2. [ ] Any new syntax or type errors introduced
-3. [ ] Compatibility with other code affected
-4. [ ] Edge cases handled correctly
-5. [ ] Any associated changes missed
-6. [ ] Security vulnerabilities introduced
-7. [ ] Tests pass (if applicable)
-8. [ ] Performance impact acceptable
-
-**Output Requirements:**
-- Pass: Concisely confirm "review passed"
-- Fail: Clearly state issue + suggested fix, return to Actor phase
-
----
-
-## Execution Flow
-
-The agent names in examples are conceptual role aliases. Map them to the current platform's available agents/tools before execution. If a named agent or tool is unavailable, use the closest equivalent while preserving the role separation: Thinker analyzes, Actor changes, Verifier checks.
-
-### Phase 1: Thinker — Analysis & Design
-
-**Implementation via Agent:**
-
-```typescript
-Agent({
-  subagent_type: "planner", // conceptual: use available planning/explore agent
-  description: "TAV Thinker - Analyze requirements",
-  prompt: `You are the Thinker role in the TAV workflow.
-
-**Your Task:**
-Analyze the following requirement and produce a detailed execution plan.
-
-**Requirement:**
-${userRequest}
-
-**Your Responsibilities:**
-1. Read all relevant code files (use parallel Read calls)
-2. Search for related symbols and dependencies (use Grep)
-3. Identify all files that need modification
-4. Create a precise Todo-list with file:line specificity
-5. Document risks and potential side effects
-
-**Output Format:**
-
-### Evidence Gathered
-- Read file: \`path/to/file:line-range\` — what you found
-- Search references: \`symbolName\` called in N places
-- Related dependencies: list of related files/modules
-
-### Analysis Conclusion
-<2-3 sentences summarizing core findings>
-
-### Todo-list
-1. \`file/path:line\` — specific action to take
-2. \`file/path:line\` — specific action to take
-...
-
-### Risk Notes
-- List potential issues, side effects, or compatibility concerns
-
-**Constraints:**
-- Every conclusion must cite file:line evidence
-- Read files in parallel when possible
-- Token budget: 10,000 tokens max
-- If requirements unclear, ask max 3 clarifying questions
-`
-})
-```
-
-**State Update:**
-After Thinker completes, update `.tav/state.json`:
-```json
-{
-  "currentPhase": "Actor",
-  "phases": {
-    "Thinker": {
-      "status": "completed",
-      "output": { /* thinker output */ },
-      "timestamp": "2026-05-19T08:30:00Z",
-      "tokenUsage": 5234
-    }
-  }
-}
-```
-
-**TodoWrite Integration:**
-Write todos to native task tracker:
-```typescript
-TodoWrite({
-  todos: thinkerOutput.todoList.map(item => ({
-    content: item.description,
-    status: "todo",
-    priority: item.risk === "high" ? "high" : "medium"
-  }))
-})
-```
-
----
-
-### Phase 2: Actor — Execute Changes
-
-**Implementation via Agent:**
-
-```typescript
-Agent({
-  subagent_type: "general-purpose", // conceptual: use available coding/execution agent
-  mode: "acceptEdits", // optional if the platform supports it
-  description: "TAV Actor - Execute changes",
-  prompt: `You are the Actor role in the TAV workflow.
-
-**Your Task:**
-Execute ONLY the following todo items. Make minimal changes.
-
-**Todo-list:**
-${JSON.stringify(thinkerOutput.todoList, null, 2)}
-
-**Your Responsibilities:**
-1. Execute each todo item in order
-2. Use Edit for existing files, Write for new files
-3. Make ONLY the changes specified — no refactoring, no extra comments
-4. Match existing code style exactly
-5. Stop immediately if you encounter a situation not covered by the todo-list
-
-**Constraints:**
-- Minimal change principle — touch only what's required
-- No exploration (no Read/Grep unless absolutely necessary)
-- Token budget: 8,000 tokens max
-- If todo-list incomplete, stop and return to Thinker
-
-**Output Format:**
-
-### Progress
-1. ✓ \`file:line\` — what you did
-2. ✓ \`file:line\` — what you did
-...
-
-### Details
-- Edit N: brief description of change
-- Write N: brief description of new file
-
-**If you encounter an issue:**
-Stop immediately and report:
-- Which todo item you were on
-- What situation you encountered
-- Why the todo-list doesn't cover it
-`
-})
-```
-
-**State Update:**
-After Actor completes, update state:
-```json
-{
-  "currentPhase": "Verifier",
-  "phases": {
-    "Actor": {
-      "status": "completed",
-      "completedItems": [1, 2, 3],
-      "timestamp": "2026-05-19T08:45:00Z",
-      "tokenUsage": 3421
-    }
-  }
-}
-```
-
-**Quality Gate (Automated):**
-Run automated checks after Actor phase:
-```typescript
-// Run linter
-Bash({ command: "npm run lint" })
-
-// Run type checker
-Bash({ command: "npm run type-check" })
-
-// If checks fail, return to Actor with error output
-```
-
----
-
-### Phase 3: Verifier — Review & Validate
-
-**Implementation via Agent:**
-
-```typescript
-Agent({
-  subagent_type: "reviewer", // conceptual: use available review/verification agent
-  description: "TAV Verifier - Review changes",
-  prompt: `You are the Verifier role in the TAV workflow.
-
-**Your Task:**
-Independently verify the changes made by Actor against the original analysis.
-
-**Original Analysis:**
-${JSON.stringify(thinkerOutput, null, 2)}
-
-**Changes Made:**
-${JSON.stringify(actorOutput, null, 2)}
-
-**Your Responsibilities:**
-1. Read the modified files (use targeted reads with offset/limit)
-2. Check for syntax/type errors
-3. Verify compatibility with surrounding code
-4. Check for security vulnerabilities
-5. Grep for missed references
-6. Run tests if applicable
-
-**Review Checklist:**
-- [ ] Does the change implement what Thinker analyzed
-- [ ] Any new syntax or type errors introduced
-- [ ] Compatibility with other code affected
-- [ ] Edge cases handled correctly
-- [ ] Any associated changes missed
-- [ ] Security vulnerabilities introduced
-- [ ] Tests pass (if applicable)
-- [ ] Performance impact acceptable
-
-**Constraints:**
-- Independent verification — don't trust Actor blindly
-- Token budget: 5,000 tokens max
-- Read only changed sections (use offset/limit)
-- Run tests once at end, not per-edit
-
-**Output Format:**
-
-### Verification Items
-| Check | Status | Notes |
-|-------|--------|-------|
-| Requirement met | ✓/✗/⚠ | ... |
-| Syntax correct | ✓/✗/⚠ | ... |
-...
-
-**If issues found:**
-### Issue Details
-- \`file:line\` — description of issue
-
-### Suggested Fix
-- Specific action to fix the issue
-
-**If all checks pass:**
-### Review Result
-All checks passed, changes correct and complete.
-`
-})
-```
-
-**State Update:**
-After Verifier completes:
-```json
-{
-  "currentPhase": "Complete",
-  "phases": {
-    "Verifier": {
-      "status": "completed",
-      "result": "pass",
-      "timestamp": "2026-05-19T09:00:00Z",
-      "tokenUsage": 2134
-    }
-  },
-  "totalTokenUsage": 10789,
-  "iterations": 1
-}
-```
-
----
-
-### Phase 4: Complete
-
-```
-**[TAV Workflow - Complete]**
-
-### Summary
-- Files modified: 3
-- Lines changed: +45 -12
-- Phases completed: Thinker → Actor → Verifier
-- Total iterations: 1
-- Token usage: 10,789
-
-### Changes
-1. src/api/user.ts — Added pagination validation
-2. src/api/user.ts — Modified query with LIMIT
-3. src/types/user.ts — Updated return type
-
-✓ Task complete
-```
-
-**Cleanup:**
-Archive state file:
-```bash
-mv .tav/state.json .tav/archive/state-$(date +%Y%m%d-%H%M%S).json
-```
-
----
-
-## Error Recovery Protocol
-
-### Recovery Decision Tree
-
-```
-Error Type → Detection Phase → Action → Fallback
-──────────────────────────────────────────────────
-Unclear requirements
-  → Thinker
-  → Ask user (max 3 questions)
-  → If still unclear: abort with summary
-
-Incomplete todo-list
-  → Actor
-  → Return to Thinker with context
-  → Thinker supplements (max 2 rounds)
-
-Verification failure
-  → Verifier
-  → Return to Actor with fix instructions
-  → Actor fixes (max 3 attempts)
-  → If still failing: return to Thinker
-
-Critical security issue
-  → Verifier
-  → Block and report affected files
-  → Require explicit user approval before any rollback or destructive action
-
-Test failure
-  → Verifier
-  → Return to Actor with test output
-  → Actor fixes (max 3 attempts)
-  → If still failing: escalate to Thinker
-
-Token budget exceeded
-  → Any phase
-  → Save state and pause
-  → Report to user with summary
-```
-
-### Retry Limits
-
-| Scenario | Max Attempts | Escalation |
-|----------|--------------|------------|
-| Thinker clarification | 3 rounds | Abort with summary |
-| Actor-Verifier loop | 3 iterations | Return to Thinker |
-| Thinker re-analysis | 2 rounds | Escalate to user |
-| Total workflow iterations | 5 | Abort with diagnostic |
-
-### State Rollback
-
-If critical issue found:
-```typescript
-// Read previous state
-const prevState = JSON.parse(fs.readFileSync('.tav/archive/state-previous.json'))
-
-// Rollback changes only after explicit user approval.
-// Use the platform's safe non-destructive workflow where available.
-
-// Restore state
-fs.writeFileSync('.tav/state.json', JSON.stringify(prevState))
-```
-
----
-
-## Performance Optimization
-
-### Token Budget per Phase
-
-| Phase | Target | Max | Notes |
-|-------|--------|-----|-------|
-| Thinker | 5,000 | 10,000 | Parallel reads, batch Grep |
-| Actor | 3,000 | 8,000 | One-pass edits, no re-reads |
-| Verifier | 2,000 | 5,000 | Targeted reads only |
-| **Total** | **10,000** | **23,000** | Per iteration |
-
-### Efficiency Rules
-
-**Thinker Phase:**
-- ✓ Read all files in ONE parallel call: `Read([file1, file2, file3])`
-- ✓ Use Grep with `output_mode: "files_with_matches"` first
-- ✓ Only read full content for confirmed relevant files
-- ✗ Don't read the same file twice
-- ✗ Don't grep for obvious symbols
-
-**Actor Phase:**
-- ✓ Never re-read files you just edited (trust Edit tool)
-- ✓ Batch related edits in same file
-- ✓ Use Edit over Write for existing files
-- ✗ Don't explore code (that's Thinker's job)
-- ✗ Don't add comments unless required
-
-**Verifier Phase:**
-- ✓ Read only changed sections (use `offset` + `limit`)
-- ✓ Grep for references instead of reading entire files
-- ✓ Run tests once at end, not per-edit
-- ✗ Don't re-analyze (trust Thinker's analysis)
-- ✗ Don't re-read unchanged files
-
----
-
-## Quality Gates
-
-### Phase Completion Criteria
-
-**Thinker Phase:**
-- [ ] All relevant files identified and read
-- [ ] Todo-list has file:line specificity
-- [ ] Risks documented
-- [ ] No assumptions without evidence
-- [ ] Token usage < 10,000
-
-**Actor Phase:**
-- [ ] All todo items completed
-- [ ] No extra changes made
-- [ ] Code compiles/lints
-- [ ] Style matches existing code
-- [ ] Token usage < 8,000
-
-**Verifier Phase:**
-- [ ] All checklist items reviewed
-- [ ] Tests pass (if applicable)
-- [ ] No new errors introduced
-- [ ] Side effects checked
-- [ ] Token usage < 5,000
-
-### Automated Checks
-
-Run after Actor phase (before Verifier):
-
-```typescript
-// Lint check
-const lintResult = Bash({ command: "npm run lint" })
-if (lintResult.exitCode !== 0) {
-  return { phase: "Actor", error: "Lint failed", output: lintResult.stderr }
-}
-
-// Type check
-const typeResult = Bash({ command: "npm run type-check" })
-if (typeResult.exitCode !== 0) {
-  return { phase: "Actor", error: "Type check failed", output: typeResult.stderr }
-}
-
-// Unit tests (if applicable)
-const testResult = Bash({ command: "npm test -- --changed" })
-if (testResult.exitCode !== 0) {
-  return { phase: "Verifier", error: "Tests failed", output: testResult.stderr }
-}
-```
-
-### Quality Metrics
-
-Track in state file:
-```json
-{
-  "metrics": {
-    "filesModified": 3,
-    "linesAdded": 45,
-    "linesRemoved": 12,
-    "tokenUsage": 10789,
-    "iterations": 1,
-    "duration": "15m 30s",
-    "qualityGates": {
-      "lint": "pass",
-      "typeCheck": "pass",
-      "tests": "pass"
-    }
-  }
-}
-```
-
----
-
-## Integration with Other Skills
-
-### Pattern 1: Deep-Discuss → TAV
-
-When requirements are unclear:
-
-```typescript
-// Step 1: Clarify with deep-discuss
-const discussion = Skill({ 
-  skill: "deep-discuss", 
-  args: userRequest 
-})
-
-// Step 2: Use clarified requirements in TAV
-const clarifiedReq = discussion.conclusion
-tavWorkflow(clarifiedReq)
-```
-
-### Pattern 2: TAV → Review
-
-After TAV completion:
-
-```typescript
-// TAV completes changes
-tavWorkflow.complete()
-
-// Trigger PR-level review
-Skill({ skill: "review" })
-```
-
-### Pattern 3: Spec-Dev → TAV (per module)
-
-For large-scale projects:
-
-```typescript
-// Spec-dev generates module tasks
-const tasks = Skill({ skill: "spec-dev" })
-
-// Apply TAV to each module
-for (const module of tasks.modules) {
-  tavWorkflow({
-    scope: module.name,
-    requirement: module.description,
-    todoList: module.tasks
-  })
-}
-```
-
-### Pattern 4: TAV → Smart-Commit
-
-After successful completion:
-
-```typescript
-// TAV completes
-tavWorkflow.complete()
-
-// Create commit with quality gates
-Skill({ skill: "smart-commit" })
-```
-
----
-
-## State Management
-
-### State File Structure: `.tav/state.json`
+Use this durable state schema:
 
 ```json
 {
-  "version": "3.0.0",
-  "taskId": "tav-20260519-083000",
-  "userRequest": "Add rate limiting to login API",
-  "currentPhase": "Actor",
-  "startTime": "2026-05-19T08:30:00Z",
-  "lastUpdate": "2026-05-19T08:45:00Z",
-  
-  "phases": {
-    "Thinker": {
-      "status": "completed",
-      "startTime": "2026-05-19T08:30:00Z",
-      "endTime": "2026-05-19T08:35:00Z",
-      "tokenUsage": 5234,
-      "output": {
-        "evidence": [
-          {
-            "file": "src/api/auth.ts",
-            "lines": "23-45",
-            "finding": "login endpoint found, no rate limiting"
-          }
-        ],
-        "todoList": [
-          {
-            "id": 1,
-            "file": "package.json",
-            "line": null,
-            "action": "Add express-rate-limit@6.7.0",
-            "risk": "low"
-          },
-          {
-            "id": 2,
-            "file": "src/middleware/rateLimiter.ts",
-            "line": null,
-            "action": "Create rate limiter config",
-            "risk": "medium"
-          }
-        ],
-        "risks": [
-          "Redis connection must be available",
-          "Rate limit headers should be documented"
-        ]
-      }
-    },
-    
-    "Actor": {
-      "status": "in-progress",
-      "startTime": "2026-05-19T08:35:00Z",
-      "tokenUsage": 2100,
-      "completedItems": [1, 2],
-      "pendingItems": [3, 4],
-      "changes": [
-        {
-          "type": "edit",
-          "file": "package.json",
-          "description": "Added express-rate-limit dependency"
-        },
-        {
-          "type": "write",
-          "file": "src/middleware/rateLimiter.ts",
-          "description": "Created rate limiter with Redis store"
-        }
-      ]
-    },
-    
-    "Verifier": {
-      "status": "pending"
-    }
-  },
-  
-  "iterations": 1,
-  "retryCount": {
-    "thinkerClarifications": 0,
-    "actorVerifierLoops": 0,
-    "thinkerReanalysis": 0
-  },
-  
-  "metrics": {
-    "totalTokenUsage": 7334,
-    "filesModified": 2,
-    "linesAdded": 35,
-    "linesRemoved": 0
-  }
+  "version": "3.1.0",
+  "task_id": "tav-YYYYMMDD-HHMMSS",
+  "user_request": "Original user request",
+  "task_tier": "L0|L1|L2",
+  "current_phase": "thinker|actor|verifier|complete|blocked",
+  "current_risk_level": "low|medium|high|critical",
+  "todo_list": [],
+  "completed_steps": [],
+  "verification_commands": [],
+  "failure_counts": {},
+  "phase_outputs": {},
+  "metrics": {}
 }
 ```
 
-### State Operations
+Use the platform's native task tracker when available. In Claude Code, map workflow progress to `TaskCreate`, `TaskUpdate`, `TaskList`, and `TaskGet`. Do not assume `TodoWrite` or `TodoUpdate` exists.
 
-**Initialize State:**
-```typescript
-function initializeState(userRequest: string) {
-  const state = {
-    version: "3.0.0",
-    taskId: `tav-${Date.now()}`,
-    userRequest,
-    currentPhase: "Thinker",
-    startTime: new Date().toISOString(),
-    phases: {
-      Thinker: { status: "in-progress" },
-      Actor: { status: "pending" },
-      Verifier: { status: "pending" }
-    },
-    iterations: 1,
-    retryCount: {},
-    metrics: {}
-  }
-  
-  fs.mkdirSync('.tav', { recursive: true })
-  fs.writeFileSync('.tav/state.json', JSON.stringify(state, null, 2))
-  return state
-}
+---
+
+## Phase 1: Thinker - Analysis and Scoping
+
+Thinker is read-only. Do not edit files in this phase.
+
+### Required actions
+
+1. Identify task tier and risk level.
+2. Gather direct evidence from files, searches, diagnostics, or logs.
+3. Diagnose the root cause or implementation target.
+4. Produce atomic todo items with file-level or symbol-level specificity.
+5. Select verification commands based on the project stack.
+6. Ask at most one focused clarification question if requirements are ambiguous.
+
+### Evidence rules
+
+- Every conclusion must cite file paths, symbols, line ranges, logs, or command output.
+- Prefer targeted reads and searches over broad file dumps.
+- If the project has CodeGraph available, use it before grep-style exploration.
+- Do not invent file paths, commands, package managers, or test scripts.
+
+### Required Thinker output
+
+```markdown
+**evidence gathered**:
+- `path/to/file:line-range` - finding
+- command/log evidence - finding
+
+**analysis summary**:
+- Root cause or implementation approach.
+
+**todo list**:
+1. `path/to/file` - exact planned change.
+2. `path/to/file` - exact planned change.
+
+**risks**:
+- Regression, compatibility, security, or operational risks.
+
+**verification plan**:
+- Exact commands to run, or explicit reason if no command is available.
 ```
 
-**Load State:**
-```typescript
-function loadState() {
-  if (!fs.existsSync('.tav/state.json')) {
-    return null
-  }
-  return JSON.parse(fs.readFileSync('.tav/state.json', 'utf-8'))
-}
-```
+After Thinker completes, update `.tav/state.json` and native task tracking.
 
-**Update State:**
-```typescript
-function updateState(updates: Partial<State>) {
-  const state = loadState()
-  const newState = {
-    ...state,
-    ...updates,
-    lastUpdate: new Date().toISOString()
-  }
-  fs.writeFileSync('.tav/state.json', JSON.stringify(newState, null, 2))
-  return newState
-}
-```
+---
 
-**Archive State:**
-```typescript
-function archiveState() {
-  const state = loadState()
-  fs.mkdirSync('.tav/archive', { recursive: true })
-  const archivePath = `.tav/archive/state-${state.taskId}.json`
-  fs.writeFileSync(archivePath, JSON.stringify(state, null, 2))
-  fs.unlinkSync('.tav/state.json')
-}
+## Phase 2: Actor - Atomic Implementation
+
+Actor executes the approved todo list. Do not perform unrelated refactors.
+
+### Required actions
+
+1. Complete todo items in order unless dependencies require otherwise.
+2. Use minimal edits that match surrounding style.
+3. Prefer editing existing files over creating new ones.
+4. Keep changes cohesive and small enough to avoid truncation.
+5. Update `completed_steps` after each meaningful chunk.
+
+### Actor boundaries
+
+- Actor may read target files when the editing tool requires it or when confirming exact edit context.
+- Actor must not perform new requirement exploration.
+- If code structure contradicts the Thinker plan, stop and return to Thinker with the blocking evidence.
+- Do not add comments, abstractions, dependencies, or formatting changes unless they are part of the plan.
+
+### Required Actor output
+
+```markdown
+**progress**:
+1. Completed `path/to/file` - change made.
+2. Completed `path/to/file` - change made.
+
+**blocked items**:
+- None, or exact blocker with evidence.
+
+**next phase**:
+- Enter Verifier, or return to Thinker because the plan is incomplete.
 ```
 
 ---
 
-## Complete Example
+## Phase 3: Verifier - Closed-Loop Quality Gate
 
-See `examples/rate-limiting.md` for a full walkthrough of adding API rate limiting using the TAV workflow.
+Verifier checks the change independently. Do not rely on Actor's summary.
+
+### Required actions
+
+1. Inspect changed files or changed sections.
+2. Check surrounding code and references affected by the change.
+3. Run the verification commands selected by Thinker when possible.
+4. Add stack-appropriate checks if Thinker missed obvious project commands.
+5. Check security-sensitive surfaces when relevant.
+6. Record pass/fail results in `.tav/state.json`.
+
+### Stack-aware verification command selection
+
+Use evidence from project files before choosing commands.
+
+| Evidence | Typical commands |
+|----------|------------------|
+| `package.json` + `pnpm-lock.yaml` | `pnpm lint`, `pnpm typecheck`, `pnpm test` if scripts exist |
+| `package.json` + `package-lock.json` | `npm run lint`, `npm run typecheck`, `npm test` if scripts exist |
+| `pyproject.toml` | `ruff check .`, `mypy .`, `pytest` when configured |
+| `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
+| `go.mod` | `go test ./...`, `gofmt`/`go vet` when applicable |
+
+If no reliable command exists, state that explicitly under failed or unexecuted commands. Never claim verification passed without running or justifying the gate.
+
+### Security-sensitive branch
+
+If the change touches authentication, authorization, user input, database queries, file system paths, external APIs, cryptography, payments, or secrets:
+
+- Run an additional security review pass.
+- Check for hardcoded secrets, injection, path traversal, unsafe error disclosure, missing validation, and authorization bypass.
+- Block completion on critical issues.
+
+### Required Verifier output
+
+```markdown
+**verification items**:
+| Check | Status | Evidence |
+|-------|--------|----------|
+| Requirement met | pass/fail/warn | ... |
+| Syntax/type safety | pass/fail/warn | ... |
+| Tests/lint | pass/fail/warn | ... |
+| Security | pass/fail/warn | ... |
+| Side effects | pass/fail/warn | ... |
+
+**result**:
+- Pass and enter Complete, or return to Actor/Thinker with exact fixes.
+```
+
+---
+
+## Phase 4: Completion
+
+Only complete after verification gates pass or are explicitly documented as unavailable.
+
+Use this final format when files were modified:
+
+```markdown
+## 变更摘要
+- What changed and why.
+
+## 涉及文件
+- `path/to/file` (Modified): summary.
+
+## 验证结果
+- [x] `command` passed, or exact observed result.
+
+## 失败或未执行的命令
+- `command` - reason.
+
+## 剩余风险
+- Known limitations or edge cases.
+
+## 后续建议
+- Practical next steps.
+```
+
+Archive or remove `.tav/state.json` only after completion and only if it belongs to the completed workflow. Do not delete VCS metadata under any circumstance.
+
+---
+
+## Error Recovery and Escalation
+
+| Failure | Detection | Action |
+|---------|-----------|--------|
+| Ambiguous requirement | Thinker | Ask one focused question, then update plan |
+| Incomplete plan | Actor | Stop and return to Thinker with evidence |
+| Quality gate failure | Verifier | Return to Actor with exact command output |
+| Same blocker fails twice | Any phase | Emit `[PUA-REPORT]` and escalate |
+| Critical security issue | Verifier | Block completion and request explicit user decision |
+| Token/context pressure | Any phase | Save state, summarize progress, pause |
+
+### PUA escalation format
+
+```text
+[PUA-REPORT]
+- 触发节点：[Agent Name / Current Phase Name]
+- 失败次数：[Exact consecutive failure count]
+- 核心瓶颈：[Precise technical blocker]
+- 异常上下文：[Terminal traces, exception stack, or error block]
+- 惩罚性反思：[Logic correction and next safe action]
+```
+
+---
+
+## Tool and Agent Mapping
+
+Role names are responsibilities, not hard dependencies on exact agent names.
+
+| TAV role | Preferred implementation | Fallback |
+|----------|--------------------------|----------|
+| Thinker | Planning/exploration agent, read-only tools | Main agent read-only analysis |
+| Actor | Coding/execution agent or main agent edits | Main agent with strict todo list |
+| Verifier | Reviewer agent, test tools, security reviewer when needed | Main agent independent verification |
+| Progress tracking | `TaskCreate` / `TaskUpdate` / native todo tool | `.tav/state.json` only |
+
+For independent read-only analysis, use parallel agents when helpful. For edits, avoid uncontrolled parallel modification unless isolated worktrees are explicitly requested or provided.
 
 ---
 
 ## Best Practices
 
-### Thinker's Efficiency Principles
-- Parallel reads: Read all relevant files in one Read call
-- Precise positioning: Each Todo item corresponds to specific file:line
-- Early risk identification: Mark potential pitfalls during analysis
-- Evidence-based: Every conclusion cites file:line
+### Thinker
 
-### Actor's Restraint Principles
-- No extra changes: Even if seeing "optimizable code", don't touch
-- No added comments: Unless user explicitly requests
-- Style consistency: Match existing code's naming, formatting
-- Trust the plan: Don't explore, just execute
+- See evidence before deciding.
+- Keep todo items atomic and executable.
+- Include exact verification commands.
+- Escalate L2 work to `spec-driven-develop`.
 
-### Verifier's Independence Principles
-- Don't trust Actor's execution: Must verify personally
-- Focus on global impact: Not just changed lines, but surrounding code
-- Verify testability: Can related tests run after changes
-- Security first: Check for vulnerabilities before approving
+### Actor
 
----
+- Change only what the todo list requires.
+- Keep edits small and complete.
+- Do not silently improvise.
+- Preserve style and naming conventions.
 
-## Troubleshooting
+### Verifier
 
-### Common Issues
-
-**Issue: Thinker can't find relevant files**
-- Solution: Use broader Grep patterns, check file naming conventions
-- Fallback: Ask user for file locations
-
-**Issue: Actor encounters unexpected code structure**
-- Solution: Stop and return to Thinker for re-analysis
-- Don't try to improvise — incomplete todo-list is a Thinker problem
-
-**Issue: Verifier finds breaking changes**
-- Solution: Return to Actor with specific fix instructions
-- If fixes fail 3 times, return to Thinker for new approach
-
-**Issue: Token budget exceeded**
-- Solution: Save state and pause, report to user
-- Resume in next conversation from saved state
-
-**Issue: Quality gates fail**
-- Solution: Return to Actor with error output
-- Fix the specific errors, don't refactor
+- Verify behavior, not just file presence.
+- Run project-appropriate checks.
+- Report failed or skipped checks honestly.
+- Reopen Actor or Thinker when evidence contradicts the plan.
 
 ---
 
 ## References
 
-- `examples/rate-limiting.md` — Complete walkthrough example
-- `examples/bug-fix.md` — Bug fix example
-- `examples/refactoring.md` — Refactoring example
-- `references/templates/state.json` — State file template
-- `references/templates/thinker-output.md` — Thinker output template
-- `references/templates/actor-output.md` — Actor output template
-- `references/templates/verifier-output.md` — Verifier output template
+- `README.md` - overview and quick start.
+- `references/implementation-guide.md` - operational guide.
+- `references/templates/state.json` - state schema template.
+- `references/templates/thinker-output.md` - Thinker output template.
+- `references/templates/actor-output.md` - Actor output template.
+- `references/templates/verifier-output.md` - Verifier output template.
+- `examples/` - walkthrough examples.
 
 ---
 
 ## Version History
 
+### 3.1.0 (2026-07-03)
+
+- Aligned state schema with `current_phase`, `todo_list`, `completed_steps`, and `current_risk_level`.
+- Replaced hard-coded `TodoWrite` assumptions with platform-native task tracking guidance.
+- Added L0/L1/L2 task tiering and `spec-driven-develop` escalation.
+- Added stack-aware verification command selection.
+- Clarified Actor read boundaries and incomplete-plan handling.
+- Added security-sensitive verification branch and two-failure PUA escalation.
+- Replaced shell-specific cleanup guidance with platform-neutral safety rules.
+
 ### 3.0.0 (2026-05-19)
-- Added automated agent orchestration
-- Added state persistence for cross-conversation continuity
-- Added native tool integration (todo/progress tools, platform-dependent)
-- Added quality gates and automated checks
-- Added performance optimization guidelines
-- Added error recovery protocol with retry limits
-- Added complete examples
-- Added skill composition patterns
+
+- Added automated role orchestration, state persistence, quality gates, and examples.
 
 ### 2.0.0 (Previous)
-- Initial three-role workflow definition
-- Basic phase descriptions
-- Manual execution model
+
+- Initial three-role workflow definition.
 
 ---
 

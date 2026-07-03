@@ -2,316 +2,208 @@
 
 ## Overview
 
-TAV (Think-Act-Verify) is a structured three-role collaboration workflow for code modifications, feature development, and bug fixes. It ensures every change has independent perspectives for analysis, execution, and verification.
+TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-Agent and task-tool names in this package are role aliases. Map them to the current platform's available planning, execution, verification, and todo tools.
-
-**Version**: 3.0.0  
+**Version**: 3.1.0
 **Status**: Stable
 
 ## Quick Start
 
-### Basic Usage
+Use TAV when a request changes code, configuration, dependencies, tests, workflows, or deployment manifests.
 
-```typescript
-// User request
-"Add rate limiting to the login API"
+```text
+User request: "Fix the checkout validation bug"
 
-// TAV workflow automatically:
-// 1. Thinker analyzes the requirement
-// 2. Actor executes the changes
-// 3. Verifier reviews and validates
-// 4. Returns complete or iterates if needed
+TAV workflow:
+1. Phase 0 checks `.tav/state.json` for resumable work.
+2. Thinker gathers evidence and writes an atomic plan.
+3. Actor applies only the planned changes.
+4. Verifier runs stack-appropriate checks and reviews side effects.
+5. Completion reports modified files, verification results, skipped checks, and residual risks.
 ```
 
-### When to Use
+## When to Use
 
-✅ **Use TAV for:**
-- Code modifications (bug fixes, feature adjustments)
-- New feature development
-- Local refactoring
-- Configuration changes
+### Use TAV for
 
-❌ **Don't use TAV for:**
-- Pure information queries
-- Simple file reads
-- Single-file operations with clear instructions
-- Full-project rewrites, migrations, rebuilds, or architecture overhauls; use `spec-driven-develop` first
+- Bug fixes.
+- Scoped feature implementation.
+- Local refactors with known target behavior.
+- Configuration updates.
+- Dependency or workflow changes.
+
+### Use something else for
+
+- Pure read-only questions: answer directly.
+- Trivial one-step edits: use lightweight TAV only.
+- Rewrites, migrations, architecture overhauls, or multi-phase transformations: run `spec-driven-develop` first, then use TAV for each scoped implementation task.
+
+## Task Tiers
+
+| Tier | Scope | Workflow |
+|------|-------|----------|
+| L0 | Micro change or obvious single-file patch | Lightweight evidence, edit, baseline verification |
+| L1 | Standard bug fix or feature across multiple files | Full Thinker -> Actor -> Verifier workflow |
+| L2 | Architecture, migration, schema, auth overhaul, distributed flow | `spec-driven-develop` first, then TAV per scoped task |
 
 ## Key Features
 
-### 🤖 Automated Agent Orchestration
-- Thinker, Actor, and Verifier roles execute automatically
-- No manual interpretation needed
-- Structured prompts ensure consistency
+### Role Separation
 
-### 💾 State Persistence
-- Cross-conversation continuity via `.tav/state.json`
-- Resume interrupted workflows
-- State archiving on completion
+- **Thinker**: read-only evidence gathering, diagnosis, todo list, risk assessment.
+- **Actor**: minimal implementation of the approved todo list.
+- **Verifier**: independent review, tests/lint/type checks, security and side-effect checks.
 
-### 📊 Native Tool Integration
-- TodoWrite for task tracking
-- Optional platform-specific workflow progress tool, if available
-- Real-time visibility in IDE
+### State Persistence
 
-### ✅ Quality Gates
-- Automated lint, type-check, test execution
-- Runs after Actor phase
-- Catches errors before Verifier
+- Durable state lives at `.tav/state.json`.
+- Interrupted workflows resume from `current_phase`.
+- The state records `todo_list`, `completed_steps`, `current_risk_level`, verification commands, failures, and metrics.
 
-### 🔄 Error Recovery
-- Structured retry logic
-- Automatic escalation
-- No infinite loops
+### Native Task Tracking
 
-### ⚡ Performance Optimized
-- Token budget tracking per phase
-- Efficiency rules for each role
-- 35% token reduction vs manual execution
+- Use the current platform's real task tools.
+- In Claude Code, map progress to `TaskCreate`, `TaskUpdate`, `TaskList`, and `TaskGet`.
+- Do not assume `TodoWrite` or `TodoUpdate` exists.
+
+### Stack-Aware Quality Gates
+
+TAV chooses verification commands from repository evidence:
+
+| Project evidence | Typical checks |
+|------------------|----------------|
+| `package.json` + `pnpm-lock.yaml` | `pnpm lint`, `pnpm typecheck`, `pnpm test` when scripts exist |
+| `package.json` + `package-lock.json` | `npm run lint`, `npm run typecheck`, `npm test` when scripts exist |
+| `pyproject.toml` | `ruff check .`, `mypy .`, `pytest` when configured |
+| `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
+| `go.mod` | `go test ./...`, `go vet ./...` when applicable |
+
+If no reliable command exists, the final report must say which checks were not run and why.
+
+### Error Recovery
+
+- Incomplete Actor plan returns to Thinker.
+- Quality gate failure returns to Actor with exact command output.
+- Critical security issues block completion.
+- The same blocker failing twice triggers `[PUA-REPORT]` escalation.
 
 ## Architecture
 
+```text
+User request
+    |
+Phase 0: Continuity Check
+    |-- load `.tav/state.json` when relevant
+    |
+Phase 1: Thinker
+    |-- evidence, diagnosis, todo list, risks, verification plan
+    |
+Phase 2: Actor
+    |-- minimal planned edits only
+    |
+Phase 3: Verifier
+    |-- changed-code review, tests/lint/typecheck, security checks
+    |
+Phase 4: Completion
+    |-- final report and state cleanup/archive
 ```
-User Request
-    ↓
-Continuity Check (.tav/state.json exists?)
-    ↓
-Phase 1: Thinker (Analysis)
-    - Read code files
-    - Create todo-list
-    - Document risks
-    ↓
-Phase 2: Actor (Execution)
-    - Execute todo items
-    - Minimal changes only
-    - Match existing style
-    ↓
-Quality Gates (Automated)
-    - Lint check
-    - Type check
-    - Tests
-    ↓
-Phase 3: Verifier (Review)
-    - Independent verification
-    - Run tests
-    - Check side effects
-    ↓
-Complete or Iterate
+
+## State File
+
+Location: `.tav/state.json`
+
+Recommended `.gitignore` entry:
+
+```gitignore
+.tav/
+```
+
+Core schema:
+
+```json
+{
+  "version": "3.1.0",
+  "task_id": "tav-YYYYMMDD-HHMMSS",
+  "user_request": "Original user request",
+  "task_tier": "L0|L1|L2",
+  "current_phase": "thinker|actor|verifier|complete|blocked",
+  "current_risk_level": "low|medium|high|critical",
+  "todo_list": [],
+  "completed_steps": [],
+  "verification_commands": [],
+  "failure_counts": {},
+  "phase_outputs": {},
+  "metrics": {}
+}
+```
+
+See [references/templates/state.json](references/templates/state.json) for the complete template.
+
+## Final Report Format
+
+When files are modified, completion must include:
+
+```markdown
+## 变更摘要
+- What changed and why.
+
+## 涉及文件
+- `path/to/file` (Modified): summary.
+
+## 验证结果
+- [x] `command` passed.
+
+## 失败或未执行的命令
+- `command` - reason.
+
+## 剩余风险
+- Known limitations.
+
+## 后续建议
+- Practical next steps.
 ```
 
 ## Examples
 
-### Example 1: Add API Rate Limiting
-
-See [examples/rate-limiting.md](examples/rate-limiting.md) for complete walkthrough.
-
-**Summary:**
-- Thinker: Analyzed login endpoint, found Redis available
-- Actor: Added express-rate-limit with Redis store
-- Verifier: Confirmed tests pass, no side effects
-- Result: 5 attempts/15min rate limit implemented
-- Metrics: 1 iteration, 10,789 tokens, 20 minutes
-
-### Example 2: Fix Bug with Iteration
-
-See [examples/bug-fix.md](examples/bug-fix.md) for complete walkthrough.
-
-**Summary:**
-- Thinker: Found missing `await` on `user.save()`
-- Actor: Added `await`
-- Verifier: Tests failed - deeper issue found
-- Actor (iteration 2): Fixed Mongoose change detection
-- Verifier: Tests pass
-- Result: Bug fixed correctly after 2 iterations
-- Metrics: 2 iterations, 12,456 tokens, 25 minutes
-
-### Example 3: Refactor Large Function
-
-See [examples/refactoring.md](examples/refactoring.md) for complete walkthrough.
-
-**Summary:**
-- Thinker: Identified 7 distinct responsibilities in 201-line function
-- Actor: Extracted 7 functions, rewrote orchestrator
-- Verifier: Confirmed behavior preserved, tests pass
-- Result: Complexity 45 → 3, 22 tests added
-- Metrics: 1 iteration, 15,234 tokens, 35 minutes
-
-## Configuration
-
-### Token Budgets
-
-| Phase | Target | Max |
-|-------|--------|-----|
-| Thinker | 5,000 | 10,000 |
-| Actor | 3,000 | 8,000 |
-| Verifier | 2,000 | 5,000 |
-
-### Retry Limits
-
-| Scenario | Max Attempts |
-|----------|--------------|
-| Thinker clarification | 3 rounds |
-| Actor-Verifier loop | 3 iterations |
-| Thinker re-analysis | 2 rounds |
-| Total workflow iterations | 5 |
-
-### State File
-
-Location: `.tav/state.json`
-
-Add to `.gitignore`:
-```
-.tav/
-```
-
-## Integration with Other Skills
-
-### Pattern 1: Deep-Discuss → TAV
-```typescript
-// Clarify requirements first
-Skill({ skill: "deep-discuss", args: userRequest })
-// Then execute with TAV
-tavWorkflow(clarifiedRequirement)
-```
-
-### Pattern 2: TAV → Review
-```typescript
-// Execute changes
-tavWorkflow(userRequest)
-// Then PR-level review
-Skill({ skill: "review" })
-```
-
-### Pattern 3: Spec-Dev → TAV
-```typescript
-// Generate module tasks
-Skill({ skill: "spec-dev" })
-// Apply TAV to each module
-for (const module of modules) {
-  tavWorkflow(module.tasks)
-}
-```
-
-### Pattern 4: TAV → Smart-Commit
-```typescript
-// Execute changes
-tavWorkflow(userRequest)
-// Create commit with quality gates
-Skill({ skill: "smart-commit" })
-```
-
-## Performance
-
-### Token Efficiency
-
-**Average token usage per workflow:**
-- Simple change: ~8,000 tokens
-- Bug fix: ~12,000 tokens
-- Refactoring: ~15,000 tokens
-
-**Efficiency improvements:**
-- 35% reduction vs manual execution
-- Parallel reads in Thinker phase
-- No re-reads in Actor phase
-- Targeted verification in Verifier phase
-
-### Execution Speed
-
-**Average duration:**
-- Simple change: 15-20 minutes
-- Bug fix: 20-30 minutes
-- Refactoring: 30-45 minutes
-
-**Speed improvements:**
-- Parallel file reads
-- Batch edits
-- Single test run
-
-## Troubleshooting
-
-### Common Issues
-
-**Issue**: Thinker can't find relevant files
-- **Solution**: Use broader Grep patterns
-- **Fallback**: Ask user for file locations
-
-**Issue**: Actor encounters unexpected code structure
-- **Solution**: Stops and returns to Thinker
-- **Don't**: Try to improvise
-
-**Issue**: Verifier finds breaking changes
-- **Solution**: Returns to Actor with fix instructions
-- **Escalation**: After 3 attempts, returns to Thinker
-
-**Issue**: Token budget exceeded
-- **Solution**: Saves state and pauses
-- **Resume**: Load state in next conversation
-
-**Issue**: Quality gates fail
-- **Solution**: Returns to Actor with error output
-- **Don't**: Refactor - just fix errors
+- [examples/rate-limiting.md](examples/rate-limiting.md) - API rate limiting walkthrough.
+- [examples/bug-fix.md](examples/bug-fix.md) - Bug fix with iteration.
+- [examples/refactoring.md](examples/refactoring.md) - Local refactor walkthrough.
 
 ## Documentation
 
-### Core Documentation
-- [SKILL.md](SKILL.md) - Complete skill specification
-- [CHANGELOG.md](CHANGELOG.md) - Version history
-
-### Implementation
-- [Implementation Guide](references/implementation-guide.md) - Technical implementation details
-
-### Templates
-- [State Template](references/templates/state.json) - State file schema
-- [Thinker Output](references/templates/thinker-output.md) - Thinker output format
-- [Actor Output](references/templates/actor-output.md) - Actor output format
-- [Verifier Output](references/templates/verifier-output.md) - Verifier output format
-
-### Examples
-- [Rate Limiting](examples/rate-limiting.md) - API rate limiting implementation
-- [Bug Fix](examples/bug-fix.md) - Bug fix with iteration
-- [Refactoring](examples/refactoring.md) - Large function refactoring
+- [SKILL.md](SKILL.md) - Complete skill specification.
+- [CHANGELOG.md](CHANGELOG.md) - Version history.
+- [Implementation Guide](references/implementation-guide.md) - Operational guidance.
+- [State Template](references/templates/state.json) - Durable state schema.
+- [Thinker Output](references/templates/thinker-output.md) - Thinker output format.
+- [Actor Output](references/templates/actor-output.md) - Actor output format.
+- [Verifier Output](references/templates/verifier-output.md) - Verifier output format.
 
 ## Version History
 
-### v3.0.0 (2026-05-19) - Current
-- ✨ Automated agent orchestration
-- 💾 State persistence
-- 📊 Native tool integration
-- ✅ Quality gates
-- 🔄 Error recovery
-- ⚡ Performance optimization
-- 📚 Complete examples
+### v3.1.0 (2026-07-03)
 
-### v2.0.0 (Previous)
-- Initial three-role workflow definition
-- Manual execution model
+- Aligned durable state with snake_case TAV fields.
+- Replaced conceptual todo tool names with platform-native task tracking guidance.
+- Added L0/L1/L2 task tiering.
+- Added stack-aware verification command selection.
+- Added Actor read-boundary clarification.
+- Added security-sensitive verification branch and two-failure PUA escalation.
 
-## Contributing
+### v3.0.0 (2026-05-19)
 
-### Reporting Issues
-- File issues in project repository
-- Include state file (`.tav/state.json`) if applicable
-- Describe expected vs actual behavior
-
-### Suggesting Enhancements
-- Describe use case
-- Explain why current workflow doesn't handle it
-- Propose solution
+- Automated role orchestration.
+- State persistence.
+- Native progress integration.
+- Quality gates.
+- Error recovery.
+- Examples and templates.
 
 ## License
 
 MIT
 
-## Acknowledgments
-
-Inspired by:
-- `spec-driven-develop` skill - State persistence patterns
-- `pro-workflow` skill - Quality gate patterns
-- User feedback - Need for automation
-
 ---
 
-**TAV Workflow v3.0.0**  
-*Think-Act-Verify: Structured collaboration for better code*
-# tav-workflow
+**TAV Workflow v3.1.0**
+*Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

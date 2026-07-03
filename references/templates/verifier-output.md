@@ -1,42 +1,34 @@
 **[Verifier - Review]**
-Phase 3 → Reviewing
+Phase 3 -> Reviewing
 
 ### Verification Items
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Requirement met | ✓/✗/⚠ | ... |
-| Syntax correct | ✓/✗/⚠ | ... |
-| Type safe | ✓/✗/⚠ | ... |
-| Compatibility | ✓/✗/⚠ | ... |
-| Edge cases | ✓/✗/⚠ | ... |
-| Security | ✓/✗/⚠ | ... |
-| Tests pass | ✓/✗/⚠ | ... |
-| Performance | ✓/✗/⚠ | ... |
+| Check | Status | Evidence |
+|-------|--------|----------|
+| Requirement met | pass/fail/warn | ... |
+| Syntax/type safety | pass/fail/warn | ... |
+| Tests/lint | pass/fail/warn | ... |
+| Compatibility | pass/fail/warn | ... |
+| Edge cases | pass/fail/warn | ... |
+| Security | pass/fail/warn | ... |
+| Performance | pass/fail/warn | ... |
 
-### Detailed Verification
-- Read modified files to verify changes
-- Grep for references to check side effects
-- Run tests to confirm functionality
+### Commands Run
+- `command` - passed/failed, important output summary.
 
-**If issues found:**
+### Failed or Skipped Commands
+- `command` - reason or failure summary.
 
 ### Issue Details
-- `file:line` — description of issue
+- `file:line` - issue description, or `None`.
 
 ### Suggested Fix
-- Specific action to fix the issue
-
-→ Return to Phase 2: Fix issues
-
-**If all checks pass:**
+- Specific fix action, or `None`.
 
 ### Review Result
-All checks passed, changes correct and complete.
+- Pass and enter Phase 4, or return to Actor/Thinker with exact reason.
 
 ### Change Summary
 - Files modified: N
 - Lines changed: +X -Y
 - Scope: brief description
-
-✓ Task complete

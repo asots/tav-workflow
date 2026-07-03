@@ -1,42 +1,57 @@
 {
-  "version": "3.0.0",
-  "taskId": "tav-example-task",
-  "userRequest": "Example user request",
-  "currentPhase": "Thinker",
-  "startTime": "2026-05-19T08:00:00Z",
-  "lastUpdate": "2026-05-19T08:00:00Z",
-
-  "phases": {
-    "Thinker": {
-      "status": "in-progress",
-      "startTime": "2026-05-19T08:00:00Z",
-      "tokenUsage": 0,
-      "output": {
-        "evidence": [],
-        "todoList": [],
-        "risks": []
-      }
-    },
-    "Actor": {
-      "status": "pending"
-    },
-    "Verifier": {
+  "version": "3.1.0",
+  "task_id": "tav-example-task",
+  "user_request": "Example user request",
+  "task_tier": "L1",
+  "current_phase": "thinker",
+  "current_risk_level": "medium",
+  "start_time": "2026-07-03T08:00:00Z",
+  "last_update": "2026-07-03T08:00:00Z",
+  "todo_list": [
+    {
+      "id": 1,
+      "phase": "actor",
+      "file": "src/example.ts",
+      "line": null,
+      "action": "Describe the exact planned change",
+      "risk": "medium",
       "status": "pending"
     }
+  ],
+  "completed_steps": [],
+  "verification_commands": [
+    {
+      "command": "npm test",
+      "reason": "Run project test suite when npm scripts confirm it exists",
+      "status": "pending"
+    }
+  ],
+  "failure_counts": {
+    "by_blocker": {},
+    "by_command": {}
   },
-
-  "iterations": 1,
-  "retryCount": {
-    "thinkerClarifications": 0,
-    "actorVerifierLoops": 0,
-    "thinkerReanalysis": 0
+  "phase_outputs": {
+    "thinker": {
+      "status": "in_progress",
+      "evidence": [],
+      "analysis_summary": "",
+      "risks": []
+    },
+    "actor": {
+      "status": "pending",
+      "changes": []
+    },
+    "verifier": {
+      "status": "pending",
+      "results": []
+    }
   },
-
   "metrics": {
-    "totalTokenUsage": 0,
-    "filesModified": 0,
-    "filesCreated": 0,
-    "linesAdded": 0,
-    "linesRemoved": 0
+    "iterations": 1,
+    "files_modified": 0,
+    "files_created": 0,
+    "lines_added": 0,
+    "lines_removed": 0,
+    "total_token_usage": 0
   }
 }

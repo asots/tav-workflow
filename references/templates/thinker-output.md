@@ -1,22 +1,29 @@
 **[Thinker - Analysis]**
-Phase 1 → Analyzing
+Phase 1 -> Analyzing
+
+### Task Classification
+- Tier: L0 / L1 / L2
+- Risk level: low / medium / high / critical
+- Escalation: use `spec-driven-develop` first? yes / no
 
 ### Evidence Gathered
-- Read file: `path/to/file:line-range` — what you found
-- Search references: `symbolName` called in N places
-- Related dependencies: list of related files/modules
+- `path/to/file:line-range` - finding
+- Search or command evidence - finding
+- Related dependencies or affected modules - finding
 
-### Analysis Conclusion
-<2-3 sentences summarizing core findings>
+### Analysis Summary
+- Root cause or implementation approach in 2-3 concise sentences.
 
-### Todo-list
-1. `file/path:line` — specific action to take
-2. `file/path:line` — specific action to take
-3. `file/path:line` — specific action to take
+### Todo List
+1. `file/path` - specific action, expected outcome, risk level.
+2. `file/path` - specific action, expected outcome, risk level.
+3. `file/path` - specific action, expected outcome, risk level.
 
-### Risk Notes
-- List potential issues, side effects, or compatibility concerns
-- Identify areas that need careful verification
-- Note any assumptions made
+### Risks
+- Regression, compatibility, security, or operational risks.
 
-→ Enter Phase 2: Execution
+### Verification Plan
+- `command` - why this validates the change.
+- Skipped or unavailable checks - reason.
+
+-> Enter Phase 2: Actor, or stop for clarification/escalation.

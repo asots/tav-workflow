@@ -73,10 +73,10 @@ Each responsibility is 20-30 lines and can be extracted into its own function. T
 `.tav/state.json`:
 ```json
 {
-  "version": "3.0.0",
+  "version": "3.1.0",
   "taskId": "tav-20260519-090000",
   "userRequest": "Refactor the processOrder function — it's 200 lines and does too many things",
-  "currentPhase": "Actor",
+  "current_phase": "Actor",
   "phases": {
     "Thinker": {
       "status": "completed",

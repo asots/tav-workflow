@@ -1,14 +1,18 @@
 **[Actor - Execution]**
-Phase 2 → Executing
+Phase 2 -> Executing
 
 ### Progress
-1. ✓ `file:line` — what you did
-2. ✓ `file:line` — what you did
-3. ✓ `file:line` — what you did
+1. Completed `file/path` - change made.
+2. Completed `file/path` - change made.
+3. Completed `file/path` - change made.
 
-### Details
-- Edit 1: brief description of change
-- Edit 2: brief description of change
-- Write 1: brief description of new file
+### Completed Steps
+- Todo ID: summary of edit/write and affected file.
 
-→ Enter Phase 3: Review
+### Blocked Items
+- None, or exact blocker with evidence.
+
+### Notes
+- Any required deviation from the Thinker plan. If there is a deviation, stop and return to Thinker.
+
+-> Enter Phase 3: Verifier, or return to Phase 1 if the plan is incomplete.
