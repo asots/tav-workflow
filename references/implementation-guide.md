@@ -1,135 +1,75 @@
 # TAV Workflow Implementation Guide
 
-This guide describes how to operate the TAV workflow in a real coding session. It is intentionally tool-mapped rather than tied to one exact platform API.
+This guide covers operational details that go beyond the specification in `SKILL.md`. When this guide and `SKILL.md` disagree, `SKILL.md` wins. Command tables, output contracts, and the escalation format are defined there and are not repeated here.
 
 ## Operating Model
 
 ```text
-Phase 0: Continuity Check
+Phase 0: Continuity Check - L1 only; resume or initialize durable state
 Phase 1: Thinker  - read-only analysis and plan
 Phase 2: Actor    - minimal planned edits
-Phase 3: Verifier - independent checks and quality gates
+Phase 3: Verifier - diff review, independent checks, quality gates
 Phase 4: Complete - final report and state cleanup/archive
 ```
 
-## Phase 0: Continuity Check
+## State Lifecycle
 
-1. Check the target project root for `.tav/state.json`.
-2. If the file exists, read it before any other work.
-3. Resume from `current_phase` when the state belongs to the current task.
-4. If the state belongs to another task, ask the user before replacing or archiving it.
-5. If no state exists, initialize one using `references/templates/state.json`.
+### When to create `.tav/state.json`
 
-Important state fields:
+Create the file only when at least one of these holds:
 
-- `current_phase`: `thinker`, `actor`, `verifier`, `complete`, or `blocked`.
-- `todo_list`: atomic implementation tasks.
-- `completed_steps`: completed chunks and evidence.
-- `current_risk_level`: `low`, `medium`, `high`, or `critical`.
-- `verification_commands`: exact checks selected from project evidence.
-- `failure_counts`: repeated blocker and command failure tracking.
+- The task will likely span more than one session.
+- The task needs multiple Actor-Verifier iterations.
+- The user explicitly asks for resumable progress.
 
-## Phase 1: Thinker
+Otherwise rely on the platform's native task tracker. L0 tasks never create state.
 
-Thinker is read-only.
+### Creation
 
-### Responsibilities
+1. Read `references/templates/state.json`.
+2. Copy the schema exactly - snake_case field names, lowercase phase enums (`thinker|actor|verifier|complete|blocked`).
+3. Fill `task_id` as `tav-YYYYMMDD-HHMMSS`, set `start_time` and `last_update` to the current UTC time.
 
-- Determine task tier: L0, L1, or L2.
-- Gather file, symbol, command, or log evidence.
-- Diagnose the implementation target or root cause.
-- Produce an atomic todo list.
-- Identify risks and verification commands.
-- Ask one focused clarification question only if necessary.
+### Updates
 
-### Output contract
+- Update `current_phase`, `completed_steps`, and `last_update` at each phase transition.
+- Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; two consecutive failures of the same entry triggers `[PUA-REPORT]` (format in `SKILL.md`).
 
-Use `references/templates/thinker-output.md`.
+### Staleness and cleanup
 
-Each todo item should contain:
+- A state whose `last_update` is older than 7 days is stale: ask the user before resuming or replacing it.
+- A state describing a different task: ask the user before replacing or archiving it.
+- On completion, archive to `.tav/archive/` or delete the file - only if it belongs to the completed workflow.
 
-- Target file or symbol.
-- Specific action.
-- Risk level.
-- Expected verification evidence.
+## Metrics Rules
 
-If the task is L2, stop and route to `spec-driven-develop` before implementation.
+Report only measurable facts:
 
-## Phase 2: Actor
+- `files_modified`, `files_created`, `lines_added`, `lines_removed`: take from `git diff --stat` (or the VCS equivalent).
+- `iterations`: count of Actor-Verifier loops actually executed.
+- Never estimate or invent token usage, cost, or wall-clock duration. These are not observable from inside the session and must not appear in state files or reports.
 
-Actor executes only the planned todo list.
+## Phase Notes
 
-### Responsibilities
+### Thinker
 
-- Apply minimal edits.
-- Preserve surrounding style and naming.
-- Avoid speculative abstractions.
-- Update `completed_steps` after each chunk.
-- Stop when the plan no longer matches the code.
+- Determine the tier first; L2 stops here and routes to `spec-driven-develop`.
+- In Claude Code, native plan mode can host the Thinker phase; the approved plan is the todo list.
+- Each todo item carries: target file or symbol, specific action, risk level, expected verification evidence.
+- Output contract: `references/templates/thinker-output.md`.
 
-### Read boundary
+### Actor
 
-Actor may read target files or snippets when required by the edit mechanism or to confirm exact context. Actor must not perform new requirement discovery. Any structural mismatch returns to Thinker.
+- Actor may read target files or snippets when required by the edit mechanism or to confirm exact context. Actor must not perform new requirement discovery.
+- Any structural mismatch between plan and code returns to Thinker with evidence.
+- Output contract: `references/templates/actor-output.md`.
 
-### Output contract
+### Verifier
 
-Use `references/templates/actor-output.md`.
-
-## Phase 3: Verifier
-
-Verifier independently checks the result.
-
-### Responsibilities
-
-- Inspect changed sections.
-- Check references and side effects.
-- Run selected verification commands when available.
-- Add obvious stack-specific checks if Thinker missed them.
-- Run an additional security review for sensitive surfaces.
-- Record pass, fail, or skipped status with evidence.
-
-### Stack-aware command selection
-
-Pick commands only after inspecting project files.
-
-| Evidence | Candidate checks |
-|----------|------------------|
-| `package.json` + `pnpm-lock.yaml` | `pnpm lint`, `pnpm typecheck`, `pnpm test` if scripts exist |
-| `package.json` + `package-lock.json` | `npm run lint`, `npm run typecheck`, `npm test` if scripts exist |
-| `package.json` + `yarn.lock` | `yarn lint`, `yarn typecheck`, `yarn test` if scripts exist |
-| `pyproject.toml` | `ruff check .`, `mypy .`, `pytest` when configured |
-| `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
-| `go.mod` | `go test ./...`, `go vet ./...` when applicable |
-
-Do not claim a check passed unless it ran and succeeded. If a command is unavailable, record it under skipped or unexecuted checks.
-
-### Output contract
-
-Use `references/templates/verifier-output.md`.
-
-## Error Recovery
-
-| Situation | Action |
-|-----------|--------|
-| Requirement unclear | Ask one focused clarification question |
-| Actor finds plan mismatch | Return to Thinker with evidence |
-| Lint/type/test failure | Return to Actor with exact output |
-| Same blocker fails twice | Emit `[PUA-REPORT]` |
-| Critical security issue | Block completion and ask user for decision |
-| Context or token pressure | Save state and pause |
-
-## PUA Escalation
-
-Use this when the same blocker, error block, or verification command fails twice consecutively.
-
-```text
-[PUA-REPORT]
-- 触发节点：[Agent Name / Current Phase Name]
-- 失败次数：[Exact consecutive failure count]
-- 核心瓶颈：[Precise technical blocker]
-- 异常上下文：[Terminal traces, exception stack, or error block]
-- 惩罚性反思：[Logic correction and next safe action]
-```
+- Start from `git diff`, not from the Actor's summary.
+- Pick verification commands only after inspecting project files; the evidence-to-command table is in `SKILL.md` Phase 3.
+- Do not claim a check passed unless it ran and succeeded. Record unavailable commands under skipped checks.
+- Output contract: `references/templates/verifier-output.md`.
 
 ## Native Task Tracking
 
@@ -140,39 +80,15 @@ For Claude Code:
 - Create one workflow task with `TaskCreate` for non-trivial work.
 - Mark it `in_progress` before implementation.
 - Use `TaskUpdate` as phases complete.
-- Keep `.tav/state.json` as the durable recovery state.
+- Keep `.tav/state.json` as the durable recovery state only when the lifecycle rules above call for it.
 
 Do not write instructions that require unavailable tool names such as `TodoWrite` or `TodoUpdate`.
-
-## Completion Report
-
-When files are modified, report:
-
-```markdown
-## 变更摘要
-- Summary of implementation.
-
-## 涉及文件
-- `path/to/file` (Modified): details.
-
-## 验证结果
-- [x] `command` passed.
-
-## 失败或未执行的命令
-- `command` - reason.
-
-## 剩余风险
-- Known risks.
-
-## 后续建议
-- Next steps.
-```
 
 ## Safety Notes
 
 - Never delete or modify `.git` or `.svn` metadata.
 - Ask before destructive, external, or hard-to-reverse actions.
-- Do not rollback changes without explicit user approval unless the platform provides a safe non-destructive mechanism and the user authorized it.
+- Do not roll back changes without explicit user approval unless the platform provides a safe non-destructive mechanism and the user authorized it.
 - Report skipped checks honestly.
 
 ---

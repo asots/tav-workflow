@@ -1,213 +1,126 @@
-# Example: Bug Fix with TAV Workflow
+# Example: Bug Fix with Two Iterations
 
-This example demonstrates using TAV workflow to fix a bug where user profile updates fail silently.
+Demonstrates the TAV loop where the Verifier catches an incomplete fix and sends the work back to the Actor. This is the core value of independent verification.
 
 ## User Request
 
 "Fix the bug where updating user profile doesn't save changes to the database"
 
-## Phase 1: Thinker — Analysis
-
-### Thinker Output
+## Phase 1: Thinker - Analysis
 
 ```markdown
 **[Thinker - Analysis]**
-Phase 1 → Analyzing
+Phase 1 -> Analyzing
+
+### Task Classification
+- Tier: L1
+- Risk level: high (possible production data loss)
+- Escalation: use `spec-driven-develop` first? no
 
 ### Evidence Gathered
-- Read file: `src/api/user.ts:89-112` — Found updateProfile endpoint
-  ```typescript
-  router.put('/profile', async (req, res) => {
-    const { name, bio, avatar } = req.body
-    const user = await User.findById(req.userId)
-    user.name = name
-    user.bio = bio
-    user.avatar = avatar
-    // BUG: Missing await on save()
-    user.save()
-    res.json({ success: true, user })
-  })
-  ```
-- Read file: `src/models/User.ts:45-67` — User model uses Mongoose, save() returns Promise
-- Search references: `user.save()` called in 8 places, checked all:
-  - 6 places correctly use `await user.save()`
-  - 2 places missing `await`: `src/api/user.ts:100` and `src/api/admin.ts:234`
-- Read file: `tests/api/user.test.ts:120-145` — Test exists but doesn't verify database state
+- `src/api/user.ts:89-112` - updateProfile endpoint calls `user.save()` without `await`; response is sent before the write completes.
+- `src/models/User.ts:45-67` - User model uses Mongoose; `save()` returns a Promise.
+- Search `user.save()` - 8 call sites; 6 use `await`, 2 do not: `src/api/user.ts:100` and `src/api/admin.ts:234`.
+- `tests/api/user.test.ts:120-145` - existing test only asserts the HTTP response, never the database state.
 
-### Analysis Conclusion
-The bug is a missing `await` on `user.save()` at line 100. The response is sent before the database write completes, causing a race condition. The test passes because it only checks the HTTP response, not the actual database state. There's a second instance of the same bug in the admin API.
+### Analysis Summary
+- Missing `await` on `user.save()` causes a race: the response returns before the write. The same defect exists in the admin API. Existing tests cannot catch it because they never read the database back.
 
-### Todo-list
-1. `src/api/user.ts:100` — Add `await` before `user.save()`
-2. `src/api/admin.ts:234` — Add `await` before `user.save()` (same bug)
-3. `tests/api/user.test.ts:145` — Add database verification after update
-4. `tests/api/admin.test.ts:89` — Add database verification (if test exists)
+### Todo List
+1. `src/api/user.ts:100` - add `await` before `user.save()`.
+2. `src/api/admin.ts:234` - add `await` before `user.save()` (same defect).
+3. `tests/api/user.test.ts:145` - after the request, reload the user from the database and assert the new values.
+4. `tests/api/admin.test.ts:89` - same database assertion.
 
-### Risk Notes
-- Both endpoints have the same bug (copy-paste error likely)
-- Existing tests don't catch this because they don't verify DB state
-- May have caused data loss in production (updates lost)
-- Should check error logs for unhandled promise rejections
+### Risks
+- Updates may have been silently lost in production; check error logs separately.
+- Tests that now verify database state may expose deeper persistence issues.
+
+### Verification Plan
+- `npm test` - full suite; the strengthened tests validate actual persistence.
 ```
 
----
-
-## Phase 2: Actor — Execution
-
-### Actor Output
+## Phase 2: Actor - Execution
 
 ```markdown
 **[Actor - Execution]**
-Phase 2 → Executing
+Phase 2 -> Executing
 
 ### Progress
-1. ✓ `src/api/user.ts:100` — Added await
-2. ✓ `src/api/admin.ts:234` — Added await
-3. ✓ `tests/api/user.test.ts:145` — Added DB verification
-4. ✓ `tests/api/admin.test.ts:89` — Added DB verification
+1. Completed `src/api/user.ts:100` - added `await`.
+2. Completed `src/api/admin.ts:234` - added `await`.
+3. Completed `tests/api/user.test.ts` - added database re-read assertion.
+4. Completed `tests/api/admin.test.ts` - added database re-read assertion.
 
-### Details
+### Blocked Items
+- None.
 
-**Edit 1: src/api/user.ts**
+### Next Phase
+- Enter Verifier.
+```
+
+Representative edit:
+
 ```typescript
-// Before:
-user.save()
-res.json({ success: true, user })
-
-// After:
-await user.save()
-res.json({ success: true, user })
+// tests/api/user.test.ts - strengthened assertion
+expect(response.status).toBe(200)
+const updatedUser = await User.findById(testUserId)
+expect(updatedUser.name).toBe('New Name')
 ```
 
-**Edit 2: src/api/admin.ts**
-```typescript
-// Before:
-user.save()
-res.json({ success: true, user })
-
-// After:
-await user.save()
-res.json({ success: true, user })
-```
-
-**Edit 3: tests/api/user.test.ts**
-```typescript
-it('should update user profile', async () => {
-  const response = await request(app)
-    .put('/api/user/profile')
-    .send({ name: 'New Name', bio: 'New bio' })
-  
-  expect(response.status).toBe(200)
-  expect(response.body.success).toBe(true)
-  
-  // NEW: Verify database state
-  const updatedUser = await User.findById(testUserId)
-  expect(updatedUser.name).toBe('New Name')
-  expect(updatedUser.bio).toBe('New bio')
-})
-```
-
-**Edit 4: tests/api/admin.test.ts**
-```typescript
-it('should update user as admin', async () => {
-  const response = await request(app)
-    .put('/api/admin/user/123')
-    .send({ name: 'Admin Updated' })
-  
-  expect(response.status).toBe(200)
-  
-  // NEW: Verify database state
-  const updatedUser = await User.findById('123')
-  expect(updatedUser.name).toBe('Admin Updated')
-})
-```
-
-→ Enter Phase 3: Review
-```
-
----
-
-## Phase 3: Verifier — Review
-
-### Verifier Output
+## Phase 3: Verifier - Review (Iteration 1)
 
 ```markdown
 **[Verifier - Review]**
-Phase 3 → Reviewing
+Phase 3 -> Reviewing
+
+### Diff Reviewed
+- `git diff` shows 4 files: two one-line `await` additions, two test assertions added. Matches the plan.
 
 ### Verification Items
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Requirement met | ✓ | Bug fixed in both locations |
-| Syntax correct | ✓ | No syntax errors |
-| Type safe | ✓ | TypeScript happy |
-| Error handling | ⚠ | No try-catch around save() |
-| Tests verify DB | ✓ | Tests now check database state |
-| All instances fixed | ✓ | Both user.ts and admin.ts fixed |
-| Tests pass | ✗ | Tests fail — see below |
+| Check | Status | Evidence |
+|-------|--------|----------|
+| Requirement met | fail | tests prove updates still not persisted |
+| Syntax/type safety | pass | tsc clean |
+| Tests/lint | fail | 2 tests failing, output below |
+| Compatibility | pass | no API shape change |
+| Edge cases | warn | no try/catch around save path |
+| Security | pass | no sensitive surface touched |
+| Side effects | pass | no other call sites affected |
 
-### Test Results
-
-```bash
-$ npm test
-
-FAIL tests/api/user.test.ts
-  ✗ should update user profile (45ms)
-    Expected: "New Name"
-    Received: "Old Name"
-
-FAIL tests/api/admin.test.ts
-  ✗ should update user as admin (32ms)
-    Expected: "Admin Updated"
-    Received: "Original Name"
-```
+### Commands Run
+- `npm test` - FAILED: `Expected: "New Name" / Received: "Old Name"` in both new assertions.
 
 ### Issue Details
-
-**Critical Issue Found:**
-Tests are now failing because they reveal the bug was deeper than just missing `await`. After adding `await`, the database still doesn't update.
-
-**Root Cause Analysis:**
-- Read `src/api/user.ts:89-112` again
-- The issue: `user` object is modified but Mongoose doesn't detect changes
-- Mongoose requires either:
-  1. `user.markModified('field')` before save, OR
-  2. Use `User.findByIdAndUpdate()` instead
-
-**Current code:**
-```typescript
-const user = await User.findById(req.userId)
-user.name = name  // Direct assignment doesn't trigger Mongoose change detection
-await user.save() // Saves nothing because no changes detected
-```
+- `src/api/user.ts:95-100` - re-read of the endpoint shows direct property assignment on a Mongoose document; change detection is not triggered, so `save()` persists nothing. The missing `await` was a symptom, not the root cause.
 
 ### Suggested Fix
+- Replace the `findById` + assign + `save()` pattern with `User.findByIdAndUpdate(..., { new: true, runValidators: true })` in both endpoints.
 
-Return to Actor with new todo:
-1. `src/api/user.ts:95-100` — Use `User.findByIdAndUpdate()` instead
-2. `src/api/admin.ts:230-234` — Same fix
-
-→ Return to Phase 2: Fix Mongoose change detection
+### Review Result
+- Return to Actor with the fix above.
 ```
 
----
-
-## Phase 2 (Iteration 2): Actor — Fix Root Cause
-
-### Actor Output
+## Phase 2: Actor - Execution (Iteration 2)
 
 ```markdown
 **[Actor - Execution]**
-Phase 2 (Iteration 2) → Executing
+Phase 2 (iteration 2) -> Executing
 
 ### Progress
-1. ✓ `src/api/user.ts:95-100` — Replaced with findByIdAndUpdate
-2. ✓ `src/api/admin.ts:230-234` — Replaced with findByIdAndUpdate
+1. Completed `src/api/user.ts:95-100` - replaced with `findByIdAndUpdate`.
+2. Completed `src/api/admin.ts:230-234` - replaced with `findByIdAndUpdate`.
 
-### Details
+### Blocked Items
+- None.
 
-**Edit 1: src/api/user.ts**
+### Next Phase
+- Enter Verifier.
+```
+
+Representative edit:
+
 ```typescript
 // Before:
 const user = await User.findById(req.userId)
@@ -215,7 +128,6 @@ user.name = name
 user.bio = bio
 user.avatar = avatar
 await user.save()
-res.json({ success: true, user })
 
 // After:
 const user = await User.findByIdAndUpdate(
@@ -223,178 +135,74 @@ const user = await User.findByIdAndUpdate(
   { name, bio, avatar },
   { new: true, runValidators: true }
 )
-res.json({ success: true, user })
 ```
 
-**Edit 2: src/api/admin.ts**
-```typescript
-// Before:
-const user = await User.findById(userId)
-user.name = name
-await user.save()
-res.json({ success: true, user })
-
-// After:
-const user = await User.findByIdAndUpdate(
-  userId,
-  { name },
-  { new: true, runValidators: true }
-)
-res.json({ success: true, user })
-```
-
-→ Enter Phase 3: Review (Iteration 2)
-```
-
----
-
-## Phase 3 (Iteration 2): Verifier — Re-verify
-
-### Verifier Output
+## Phase 3: Verifier - Review (Iteration 2)
 
 ```markdown
 **[Verifier - Review]**
-Phase 3 (Iteration 2) → Reviewing
+Phase 3 (iteration 2) -> Reviewing
+
+### Diff Reviewed
+- `git diff` shows both endpoints now use `findByIdAndUpdate` with `runValidators`; test assertions unchanged.
 
 ### Verification Items
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Requirement met | ✓ | Bug fixed correctly |
-| Syntax correct | ✓ | No errors |
-| Type safe | ✓ | TypeScript correct |
-| Mongoose usage | ✓ | findByIdAndUpdate used correctly |
-| Validators run | ✓ | runValidators: true included |
-| Tests pass | ✓ | All tests pass |
-| Error handling | ✓ | Mongoose errors bubble up |
+| Check | Status | Evidence |
+|-------|--------|----------|
+| Requirement met | pass | database assertions pass |
+| Syntax/type safety | pass | tsc clean |
+| Tests/lint | pass | 5/5 tests pass |
+| Compatibility | pass | response shape unchanged |
+| Edge cases | pass | validators run on update |
+| Security | pass | no new surface |
+| Side effects | pass | other `user.save()` call sites untouched |
 
-### Test Results
+### Commands Run
+- `npm test` - PASS: `Tests: 5 passed, 5 total`.
 
-```bash
-$ npm test
-
-PASS tests/api/user.test.ts
-  ✓ should update user profile (28ms)
-  ✓ should validate required fields (15ms)
-  ✓ should return 404 for invalid user (12ms)
-
-PASS tests/api/admin.test.ts
-  ✓ should update user as admin (22ms)
-  ✓ should require admin role (18ms)
-
-Test Suites: 2 passed, 2 total
-Tests:       5 passed, 5 total
-```
+### Issue Details
+- None.
 
 ### Review Result
-
-**Status: PASS**
-
-All checks passed. The bug is fixed correctly:
-- Database updates now persist
-- Tests verify database state
-- Mongoose validators run on update
-- Error handling works correctly
+- Pass and enter Phase 4.
 
 ### Change Summary
-- Files modified: 4 (2 source, 2 test)
-- Lines changed: +12 -16 (net: -4 lines, simpler code)
-- Iterations: 2 (initial fix incomplete, second fix correct)
-- Root cause: Mongoose change detection issue
-
-✓ Task complete
+- Files modified: 4 (from `git diff --stat`)
+- Lines changed: +12 -16 (from `git diff --stat`)
+- Scope: profile/admin update persistence fix plus strengthened tests
 ```
 
----
-
-## Final Summary
+## Phase 4: Completion
 
 ```markdown
-**[TAV Workflow - Complete]**
+## 变更摘要
+- 用户资料更新未持久化的根因是 Mongoose 变更检测未触发（直接属性赋值 + `save()`），而非最初诊断的缺失 `await`。已在两个端点改用 `findByIdAndUpdate` 并强化测试以校验数据库真实状态。
 
-### Summary
-✓ Bug fixed: User profile updates now save correctly
+## 涉及文件
+- `src/api/user.ts` (Modified): updateProfile 改用 findByIdAndUpdate。
+- `src/api/admin.ts` (Modified): 管理端同一缺陷同步修复。
+- `tests/api/user.test.ts` (Modified): 增加数据库回读断言。
+- `tests/api/admin.test.ts` (Modified): 增加数据库回读断言。
 
-### Root Cause
-Missing `await` on `user.save()` was a symptom. Real issue was Mongoose change detection not triggered by direct property assignment.
+## 验证结果
+- [x] `npm test` passed (5 passing)
 
-### Solution
-Replaced `findById` + `save()` pattern with `findByIdAndUpdate()` which:
-- Directly updates database
-- Runs validators
-- Returns updated document
-- Simpler code (fewer lines)
+## 失败或未执行的命令
+- None.
 
-### Changes
-1. src/api/user.ts — Use findByIdAndUpdate for profile updates
-2. src/api/admin.ts — Use findByIdAndUpdate for admin updates
-3. tests/api/user.test.ts — Added database verification
-4. tests/api/admin.test.ts — Added database verification
+## 剩余风险
+- 生产环境历史丢失的更新无法恢复，建议排查错误日志。
 
-### Metrics
-- Files modified: 4
-- Lines changed: +12 -16
-- Iterations: 2
-- Token usage: 12,456
-- Duration: 25 minutes
-
-### Key Learning
-Initial analysis was incomplete. Verifier caught this by running tests that verify database state, not just HTTP responses. This demonstrates the value of independent verification.
-
-✓ Task complete
+## 后续建议
+- 为其余 6 处 `user.save()` 调用补充数据库状态断言。
 ```
-
----
 
 ## Key Takeaways
 
-### Why Two Iterations Were Needed
-
-1. **Thinker's initial analysis was surface-level:**
-   - Identified missing `await` (correct symptom)
-   - Didn't test the hypothesis (would have revealed deeper issue)
-   - Lesson: Run tests during analysis phase when possible
-
-2. **Verifier caught the real issue:**
-   - Ran tests that verify database state
-   - Tests failed, revealing incomplete fix
-   - Returned to Actor with root cause analysis
-
-3. **Second iteration fixed root cause:**
-   - Actor applied correct solution
-   - Verifier confirmed tests pass
-   - Bug fully resolved
-
-### What This Demonstrates
-
-**Value of TAV Workflow:**
-- **Thinker:** Found the bug location and initial hypothesis
-- **Actor:** Applied fix without over-engineering
-- **Verifier:** Caught incomplete fix through independent testing
-- **Iteration:** System self-corrected without user intervention
-
-**Importance of Good Tests:**
-- Original test only checked HTTP response (false positive)
-- Updated test verifies database state (catches real bug)
-- Verifier's test-driven verification caught the incomplete fix
-
-### Alternative Approach (Without TAV)
-
-Without structured workflow:
-1. Developer sees bug report
-2. Adds `await` (seems obvious)
-3. Commits without testing
-4. Bug persists in production
-5. More user complaints
-6. Deeper investigation needed
-
-With TAV:
-1. Thinker analyzes systematically
-2. Actor applies fix
-3. Verifier tests independently
-4. Catches incomplete fix
-5. Second iteration fixes root cause
-6. Verified working before commit
+1. **The first fix was plausible and wrong.** Adding `await` matched the symptom; only a test that reads the database back exposed the real defect.
+2. **Verifier independence is the safety net.** It re-read the endpoint instead of trusting the Actor's summary, found the change-detection issue, and returned an exact fix.
+3. **The loop is cheap.** One extra Actor-Verifier iteration prevented shipping a fake fix to production.
 
 ---
 

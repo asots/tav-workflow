@@ -1,5 +1,35 @@
 # TAV Workflow Changelog
 
+## Version 3.2.0 (2026-07-06)
+
+### Consistency Fixes
+
+- **Fixed**: All three examples rewritten to match the v3.1+ contracts they claimed to follow:
+  - `state.json` snippets now use snake_case fields and lowercase phase enums (previously camelCase `taskId`/`userRequest`/`phases` with capitalized phases).
+  - Thinker outputs now include `Task Classification` and `Verification Plan` sections.
+  - Verifier tables now use `pass/fail/warn` instead of check-mark symbols.
+- **Fixed**: Verifier checklist unified to one 7-item table (Requirement met, Syntax/type safety, Tests/lint, Compatibility, Edge cases, Security, Side effects) across `SKILL.md` and the output template.
+- **Fixed**: Stack command table unified (added `yarn.lock` row, normalized `go vet ./...`, added an "other stacks: infer from CI/README/Makefile" fallback row); the table now lives only in `SKILL.md`.
+
+### Workflow Improvements
+
+- **Added**: L0 tasks explicitly skip Phase 0, the state file, and templated phase outputs (single-pass lightweight TAV).
+- **Added**: State staleness rule - `last_update` older than 7 days requires user confirmation before resuming.
+- **Added**: `.tav/state.json` creation is now conditional (cross-session or multi-iteration work only); native task tracking is the default.
+- **Added**: Verifier's first required action is reviewing the real `git diff`, not the Actor's summary.
+- **Added**: Thinker phase maps to Claude Code native plan mode when active.
+
+### Anti-Hallucination
+
+- **Removed**: `total_token_usage` from the state schema and all token/duration figures from examples and reports. Metrics are restricted to values measurable via `git diff --stat` and iteration counts.
+
+### Documentation Structure
+
+- **Changed**: `SKILL.md` is the single source of truth; `README.md` and `references/implementation-guide.md` no longer duplicate schemas, command tables, or report formats.
+- **Changed**: References section now uses on-demand progressive disclosure (when to read each file).
+- **Removed**: Version history section from `SKILL.md` body (this changelog is authoritative).
+- **Removed**: Platform-API-shaped agent invocation pseudo-code from examples.
+
 ## Version 3.1.0 (2026-07-03)
 
 ### Alignment Improvements

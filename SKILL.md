@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.1.0
+version: 3.2.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -30,7 +30,6 @@ Use this skill to prevent unplanned edits, hidden assumptions, and unverified co
 ### Do not use this skill for
 
 - Pure read-only explanations or repository searches.
-- Trivial single-step edits that need no analysis.
 - Full-project rewrites, migrations, framework rebuilds, schema overhauls, or broad transformations. Use `spec-driven-develop` first, then apply TAV to each scoped task.
 
 ---
@@ -41,9 +40,9 @@ Choose the smallest workflow that is still safe.
 
 | Tier | Scope | Required workflow |
 |------|-------|-------------------|
-| L0 | Micro change, localized single-file patch, simple config value | Lightweight TAV: evidence, edit, baseline verification |
-| L1 | Standard bug fix or feature touching multiple files | Full TAV: Thinker plan, Actor implementation, quality gates, Verifier review |
-| L2 | Architecture, migration, auth overhaul, database schema, distributed flow | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV |
+| L0 | Micro change, localized single-file patch, simple config value | Lightweight TAV in a single pass: cite evidence, edit, run a baseline check. No state file, no templated phase outputs. |
+| L1 | Standard bug fix or feature touching multiple files | Full TAV: Thinker plan, Actor implementation, quality gates, Verifier review. |
+| L2 | Architecture, migration, auth overhaul, database schema, distributed flow | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV. |
 
 When unsure, choose the higher tier.
 
@@ -51,38 +50,28 @@ When unsure, choose the higher tier.
 
 ## Phase 0: Continuity Check
 
-Before any analysis or edits, check for `.tav/state.json` in the target project root.
+Skip this phase entirely for L0 tasks.
 
-- If it exists and is relevant to the current task, load it and resume from `current_phase`.
-- If it exists but describes a different task, ask the user before replacing or archiving it.
-- If it does not exist, start a fresh workflow.
+For L1 tasks, check for `.tav/state.json` in the target project root before any analysis or edits.
 
-Use this durable state schema:
+- If it exists, matches the current task, and `last_update` is within 7 days, load it and resume from `current_phase`.
+- If `last_update` is older than 7 days, treat the state as stale and ask the user before resuming or replacing it.
+- If it describes a different task, ask the user before replacing or archiving it.
+- If it does not exist, start fresh.
 
-```json
-{
-  "version": "3.1.0",
-  "task_id": "tav-YYYYMMDD-HHMMSS",
-  "user_request": "Original user request",
-  "task_tier": "L0|L1|L2",
-  "current_phase": "thinker|actor|verifier|complete|blocked",
-  "current_risk_level": "low|medium|high|critical",
-  "todo_list": [],
-  "completed_steps": [],
-  "verification_commands": [],
-  "failure_counts": {},
-  "phase_outputs": {},
-  "metrics": {}
-}
-```
+Create `.tav/state.json` only when the work is likely to span sessions or needs multiple Actor-Verifier iterations. For ordinary single-session L1 tasks, the platform's native task tracker is sufficient.
 
-Use the platform's native task tracker when available. In Claude Code, map workflow progress to `TaskCreate`, `TaskUpdate`, `TaskList`, and `TaskGet`. Do not assume `TodoWrite` or `TodoUpdate` exists.
+Key state fields: `current_phase` (`thinker|actor|verifier|complete|blocked`), `task_tier` (`L0|L1|L2`), `current_risk_level` (`low|medium|high|critical`), `todo_list`, `completed_steps`, `verification_commands`, `failure_counts`, `last_update`. Read `references/templates/state.json` before creating the file for the first time; keep field names exactly as the template defines them.
+
+Use the platform's native task tracker when available. In Claude Code, map workflow progress to `TaskCreate` and `TaskUpdate`. Do not assume `TodoWrite` or `TodoUpdate` exists.
 
 ---
 
 ## Phase 1: Thinker - Analysis and Scoping
 
 Thinker is read-only. Do not edit files in this phase.
+
+In Claude Code, when native plan mode is active, run the Thinker phase inside it: the approved plan becomes the todo list. Do not duplicate the analysis afterwards.
 
 ### Required actions
 
@@ -121,7 +110,7 @@ Thinker is read-only. Do not edit files in this phase.
 - Exact commands to run, or explicit reason if no command is available.
 ```
 
-After Thinker completes, update `.tav/state.json` and native task tracking.
+After Thinker completes, update native task tracking (and `.tav/state.json` if it exists).
 
 ---
 
@@ -143,6 +132,7 @@ Actor executes the approved todo list. Do not perform unrelated refactors.
 - Actor must not perform new requirement exploration.
 - If code structure contradicts the Thinker plan, stop and return to Thinker with the blocking evidence.
 - Do not add comments, abstractions, dependencies, or formatting changes unless they are part of the plan.
+- Do not silently improvise; deviations require a return to Thinker.
 
 ### Required Actor output
 
@@ -166,12 +156,13 @@ Verifier checks the change independently. Do not rely on Actor's summary.
 
 ### Required actions
 
-1. Inspect changed files or changed sections.
+1. Run `git diff` (or the VCS equivalent) first and review the actual changes, not the reported ones.
 2. Check surrounding code and references affected by the change.
 3. Run the verification commands selected by Thinker when possible.
 4. Add stack-appropriate checks if Thinker missed obvious project commands.
 5. Check security-sensitive surfaces when relevant.
-6. Record pass/fail results in `.tav/state.json`.
+6. Verify behavior, not just file presence.
+7. Record pass/fail results in native task tracking (and `.tav/state.json` if it exists).
 
 ### Stack-aware verification command selection
 
@@ -181,9 +172,11 @@ Use evidence from project files before choosing commands.
 |----------|------------------|
 | `package.json` + `pnpm-lock.yaml` | `pnpm lint`, `pnpm typecheck`, `pnpm test` if scripts exist |
 | `package.json` + `package-lock.json` | `npm run lint`, `npm run typecheck`, `npm test` if scripts exist |
+| `package.json` + `yarn.lock` | `yarn lint`, `yarn typecheck`, `yarn test` if scripts exist |
 | `pyproject.toml` | `ruff check .`, `mypy .`, `pytest` when configured |
 | `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
-| `go.mod` | `go test ./...`, `gofmt`/`go vet` when applicable |
+| `go.mod` | `go test ./...`, `go vet ./...` when applicable |
+| Other stacks | Infer from CI config, README, Makefile, or project scripts; never invent commands |
 
 If no reliable command exists, state that explicitly under failed or unexecuted commands. Never claim verification passed without running or justifying the gate.
 
@@ -204,6 +197,8 @@ If the change touches authentication, authorization, user input, database querie
 | Requirement met | pass/fail/warn | ... |
 | Syntax/type safety | pass/fail/warn | ... |
 | Tests/lint | pass/fail/warn | ... |
+| Compatibility | pass/fail/warn | ... |
+| Edge cases | pass/fail/warn | ... |
 | Security | pass/fail/warn | ... |
 | Side effects | pass/fail/warn | ... |
 
@@ -239,6 +234,8 @@ Use this final format when files were modified:
 - Practical next steps.
 ```
 
+Report only measurable facts. File and line counts come from `git diff --stat`; never estimate token usage or wall-clock duration.
+
 Archive or remove `.tav/state.json` only after completion and only if it belongs to the completed workflow. Do not delete VCS metadata under any circumstance.
 
 ---
@@ -273,7 +270,7 @@ Role names are responsibilities, not hard dependencies on exact agent names.
 
 | TAV role | Preferred implementation | Fallback |
 |----------|--------------------------|----------|
-| Thinker | Planning/exploration agent, read-only tools | Main agent read-only analysis |
+| Thinker | Native plan mode, planning/exploration agent, read-only tools | Main agent read-only analysis |
 | Actor | Coding/execution agent or main agent edits | Main agent with strict todo list |
 | Verifier | Reviewer agent, test tools, security reviewer when needed | Main agent independent verification |
 | Progress tracking | `TaskCreate` / `TaskUpdate` / native todo tool | `.tav/state.json` only |
@@ -282,62 +279,17 @@ For independent read-only analysis, use parallel agents when helpful. For edits,
 
 ---
 
-## Best Practices
-
-### Thinker
-
-- See evidence before deciding.
-- Keep todo items atomic and executable.
-- Include exact verification commands.
-- Escalate L2 work to `spec-driven-develop`.
-
-### Actor
-
-- Change only what the todo list requires.
-- Keep edits small and complete.
-- Do not silently improvise.
-- Preserve style and naming conventions.
-
-### Verifier
-
-- Verify behavior, not just file presence.
-- Run project-appropriate checks.
-- Report failed or skipped checks honestly.
-- Reopen Actor or Thinker when evidence contradicts the plan.
-
----
-
 ## References
 
-- `README.md` - overview and quick start.
-- `references/implementation-guide.md` - operational guide.
-- `references/templates/state.json` - state schema template.
-- `references/templates/thinker-output.md` - Thinker output template.
-- `references/templates/actor-output.md` - Actor output template.
-- `references/templates/verifier-output.md` - Verifier output template.
-- `examples/` - walkthrough examples.
+Read these on demand, not upfront:
 
----
-
-## Version History
-
-### 3.1.0 (2026-07-03)
-
-- Aligned state schema with `current_phase`, `todo_list`, `completed_steps`, and `current_risk_level`.
-- Replaced hard-coded `TodoWrite` assumptions with platform-native task tracking guidance.
-- Added L0/L1/L2 task tiering and `spec-driven-develop` escalation.
-- Added stack-aware verification command selection.
-- Clarified Actor read boundaries and incomplete-plan handling.
-- Added security-sensitive verification branch and two-failure PUA escalation.
-- Replaced shell-specific cleanup guidance with platform-neutral safety rules.
-
-### 3.0.0 (2026-05-19)
-
-- Added automated role orchestration, state persistence, quality gates, and examples.
-
-### 2.0.0 (Previous)
-
-- Initial three-role workflow definition.
+- `references/templates/state.json` - read before creating `.tav/state.json` for the first time.
+- `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - read before producing a phase output when the inline format above is not detailed enough.
+- `references/implementation-guide.md` - operational details: state lifecycle, native task tracking, metrics rules, safety notes.
+- `examples/bug-fix.md` - two-iteration loop where Verifier catches an incomplete fix.
+- `examples/rate-limiting.md` - full L1 walkthrough including state file evolution.
+- `examples/refactoring.md` - behavior-preserving extraction with plan-mismatch recovery.
+- `CHANGELOG.md` - version history.
 
 ---
 

@@ -1,12 +1,12 @@
 {
-  "version": "3.1.0",
+  "version": "3.2.0",
   "task_id": "tav-example-task",
   "user_request": "Example user request",
   "task_tier": "L1",
   "current_phase": "thinker",
   "current_risk_level": "medium",
-  "start_time": "2026-07-03T08:00:00Z",
-  "last_update": "2026-07-03T08:00:00Z",
+  "start_time": "2026-07-06T08:00:00Z",
+  "last_update": "2026-07-06T08:00:00Z",
   "todo_list": [
     {
       "id": 1,
@@ -51,7 +51,6 @@
     "files_modified": 0,
     "files_created": 0,
     "lines_added": 0,
-    "lines_removed": 0,
-    "total_token_usage": 0
+    "lines_removed": 0
   }
 }

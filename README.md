@@ -4,8 +4,10 @@
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.1.0
+**Version**: 3.2.0
 **Status**: Stable
+
+The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
 
 ## Quick Start
 
@@ -15,10 +17,10 @@ Use TAV when a request changes code, configuration, dependencies, tests, workflo
 User request: "Fix the checkout validation bug"
 
 TAV workflow:
-1. Phase 0 checks `.tav/state.json` for resumable work.
+1. Phase 0 checks `.tav/state.json` for resumable work (L1 only, skipped for L0).
 2. Thinker gathers evidence and writes an atomic plan.
 3. Actor applies only the planned changes.
-4. Verifier runs stack-appropriate checks and reviews side effects.
+4. Verifier reviews the real diff, runs stack-appropriate checks, and looks for side effects.
 5. Completion reports modified files, verification results, skipped checks, and residual risks.
 ```
 
@@ -35,65 +37,31 @@ TAV workflow:
 ### Use something else for
 
 - Pure read-only questions: answer directly.
-- Trivial one-step edits: use lightweight TAV only.
 - Rewrites, migrations, architecture overhauls, or multi-phase transformations: run `spec-driven-develop` first, then use TAV for each scoped implementation task.
 
 ## Task Tiers
 
 | Tier | Scope | Workflow |
 |------|-------|----------|
-| L0 | Micro change or obvious single-file patch | Lightweight evidence, edit, baseline verification |
+| L0 | Micro change or obvious single-file patch | Single-pass lightweight TAV: evidence, edit, baseline check. No state file. |
 | L1 | Standard bug fix or feature across multiple files | Full Thinker -> Actor -> Verifier workflow |
 | L2 | Architecture, migration, schema, auth overhaul, distributed flow | `spec-driven-develop` first, then TAV per scoped task |
 
 ## Key Features
 
-### Role Separation
-
-- **Thinker**: read-only evidence gathering, diagnosis, todo list, risk assessment.
-- **Actor**: minimal implementation of the approved todo list.
-- **Verifier**: independent review, tests/lint/type checks, security and side-effect checks.
-
-### State Persistence
-
-- Durable state lives at `.tav/state.json`.
-- Interrupted workflows resume from `current_phase`.
-- The state records `todo_list`, `completed_steps`, `current_risk_level`, verification commands, failures, and metrics.
-
-### Native Task Tracking
-
-- Use the current platform's real task tools.
-- In Claude Code, map progress to `TaskCreate`, `TaskUpdate`, `TaskList`, and `TaskGet`.
-- Do not assume `TodoWrite` or `TodoUpdate` exists.
-
-### Stack-Aware Quality Gates
-
-TAV chooses verification commands from repository evidence:
-
-| Project evidence | Typical checks |
-|------------------|----------------|
-| `package.json` + `pnpm-lock.yaml` | `pnpm lint`, `pnpm typecheck`, `pnpm test` when scripts exist |
-| `package.json` + `package-lock.json` | `npm run lint`, `npm run typecheck`, `npm test` when scripts exist |
-| `pyproject.toml` | `ruff check .`, `mypy .`, `pytest` when configured |
-| `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
-| `go.mod` | `go test ./...`, `go vet ./...` when applicable |
-
-If no reliable command exists, the final report must say which checks were not run and why.
-
-### Error Recovery
-
-- Incomplete Actor plan returns to Thinker.
-- Quality gate failure returns to Actor with exact command output.
-- Critical security issues block completion.
-- The same blocker failing twice triggers `[PUA-REPORT]` escalation.
+- **Role separation**: read-only Thinker, minimal-change Actor, independent Verifier that starts from `git diff`, not from the Actor's summary.
+- **State persistence**: `.tav/state.json` enables resuming interrupted L1 work; states older than 7 days are treated as stale. See [SKILL.md](SKILL.md) Phase 0 for the schema and [references/templates/state.json](references/templates/state.json) for the full template.
+- **Native task tracking**: progress maps to the platform's real task tools (in Claude Code: `TaskCreate` / `TaskUpdate`).
+- **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [SKILL.md](SKILL.md) Phase 3.
+- **Error recovery**: plan mismatches return to Thinker, gate failures return to Actor, the same blocker failing twice triggers `[PUA-REPORT]` escalation, and critical security issues block completion.
 
 ## Architecture
 
 ```text
 User request
     |
-Phase 0: Continuity Check
-    |-- load `.tav/state.json` when relevant
+Phase 0: Continuity Check (L1 only)
+    |-- load `.tav/state.json` when relevant and fresh
     |
 Phase 1: Thinker
     |-- evidence, diagnosis, todo list, risks, verification plan
@@ -102,7 +70,7 @@ Phase 2: Actor
     |-- minimal planned edits only
     |
 Phase 3: Verifier
-    |-- changed-code review, tests/lint/typecheck, security checks
+    |-- git diff review, tests/lint/typecheck, security checks
     |
 Phase 4: Completion
     |-- final report and state cleanup/archive
@@ -110,7 +78,7 @@ Phase 4: Completion
 
 ## State File
 
-Location: `.tav/state.json`
+Location: `.tav/state.json` (created only when work may span sessions or iterations).
 
 Recommended `.gitignore` entry:
 
@@ -118,86 +86,19 @@ Recommended `.gitignore` entry:
 .tav/
 ```
 
-Core schema:
-
-```json
-{
-  "version": "3.1.0",
-  "task_id": "tav-YYYYMMDD-HHMMSS",
-  "user_request": "Original user request",
-  "task_tier": "L0|L1|L2",
-  "current_phase": "thinker|actor|verifier|complete|blocked",
-  "current_risk_level": "low|medium|high|critical",
-  "todo_list": [],
-  "completed_steps": [],
-  "verification_commands": [],
-  "failure_counts": {},
-  "phase_outputs": {},
-  "metrics": {}
-}
-```
-
-See [references/templates/state.json](references/templates/state.json) for the complete template.
-
-## Final Report Format
-
-When files are modified, completion must include:
-
-```markdown
-## 变更摘要
-- What changed and why.
-
-## 涉及文件
-- `path/to/file` (Modified): summary.
-
-## 验证结果
-- [x] `command` passed.
-
-## 失败或未执行的命令
-- `command` - reason.
-
-## 剩余风险
-- Known limitations.
-
-## 后续建议
-- Practical next steps.
-```
-
 ## Examples
 
-- [examples/rate-limiting.md](examples/rate-limiting.md) - API rate limiting walkthrough.
-- [examples/bug-fix.md](examples/bug-fix.md) - Bug fix with iteration.
-- [examples/refactoring.md](examples/refactoring.md) - Local refactor walkthrough.
+- [examples/bug-fix.md](examples/bug-fix.md) - two-iteration loop where Verifier catches an incomplete fix.
+- [examples/rate-limiting.md](examples/rate-limiting.md) - full L1 walkthrough including state file evolution.
+- [examples/refactoring.md](examples/refactoring.md) - behavior-preserving extraction with plan-mismatch recovery.
 
 ## Documentation
 
-- [SKILL.md](SKILL.md) - Complete skill specification.
-- [CHANGELOG.md](CHANGELOG.md) - Version history.
-- [Implementation Guide](references/implementation-guide.md) - Operational guidance.
-- [State Template](references/templates/state.json) - Durable state schema.
-- [Thinker Output](references/templates/thinker-output.md) - Thinker output format.
-- [Actor Output](references/templates/actor-output.md) - Actor output format.
-- [Verifier Output](references/templates/verifier-output.md) - Verifier output format.
-
-## Version History
-
-### v3.1.0 (2026-07-03)
-
-- Aligned durable state with snake_case TAV fields.
-- Replaced conceptual todo tool names with platform-native task tracking guidance.
-- Added L0/L1/L2 task tiering.
-- Added stack-aware verification command selection.
-- Added Actor read-boundary clarification.
-- Added security-sensitive verification branch and two-failure PUA escalation.
-
-### v3.0.0 (2026-05-19)
-
-- Automated role orchestration.
-- State persistence.
-- Native progress integration.
-- Quality gates.
-- Error recovery.
-- Examples and templates.
+- [SKILL.md](SKILL.md) - complete skill specification (single source of truth).
+- [CHANGELOG.md](CHANGELOG.md) - version history.
+- [Implementation Guide](references/implementation-guide.md) - operational guidance.
+- [State Template](references/templates/state.json) - durable state schema.
+- [Thinker Output](references/templates/thinker-output.md) / [Actor Output](references/templates/actor-output.md) / [Verifier Output](references/templates/verifier-output.md) - phase output formats.
 
 ## License
 
@@ -205,5 +106,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.1.0**
+**TAV Workflow v3.2.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

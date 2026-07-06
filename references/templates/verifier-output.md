@@ -1,6 +1,10 @@
 **[Verifier - Review]**
 Phase 3 -> Reviewing
 
+### Diff Reviewed
+
+- `git diff` (or VCS equivalent) inspected first: summary of actual changes observed.
+
 ### Verification Items
 
 | Check | Status | Evidence |
@@ -11,24 +15,30 @@ Phase 3 -> Reviewing
 | Compatibility | pass/fail/warn | ... |
 | Edge cases | pass/fail/warn | ... |
 | Security | pass/fail/warn | ... |
-| Performance | pass/fail/warn | ... |
+| Side effects | pass/fail/warn | ... |
 
 ### Commands Run
+
 - `command` - passed/failed, important output summary.
 
 ### Failed or Skipped Commands
+
 - `command` - reason or failure summary.
 
 ### Issue Details
+
 - `file:line` - issue description, or `None`.
 
 ### Suggested Fix
+
 - Specific fix action, or `None`.
 
 ### Review Result
+
 - Pass and enter Phase 4, or return to Actor/Thinker with exact reason.
 
 ### Change Summary
-- Files modified: N
-- Lines changed: +X -Y
+
+- Files modified: N (from `git diff --stat`)
+- Lines changed: +X -Y (from `git diff --stat`)
 - Scope: brief description
