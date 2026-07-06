@@ -102,6 +102,7 @@ One rule per entry, three parts, kept short:
 - Append or update in place — never rewrite or reorder surrounding content, and never touch user-written sections.
 - Match the target surface's existing structure and language (a `CLAUDE.md` rules list, a native memory file's frontmatter conventions, an `AGENTS.md` section layout).
 - One write per surface per cycle; batch multiple rules into a single edit.
+- Stale-entry maintenance (updating or deleting a recalled entry that no longer holds) follows the same batch-edit rule and is reported like any other capture.
 
 ### Anti-patterns
 

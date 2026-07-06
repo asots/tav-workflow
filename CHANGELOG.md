@@ -1,5 +1,17 @@
 # TAV Workflow Changelog
 
+## Version 3.5.0 (2026-07-06)
+
+### Closing the Loop
+
+- **Added**: Recall-and-validate — a recalled `docs/memory/` entry that contradicts current code is flagged by Thinker as a stale-entry candidate and updated or deleted in Phase 4 (new capture signal 6). Stale-entry maintenance follows the same batch-edit and reporting rules, so the memory directory stays fresh through use.
+- **Added**: Verifier independence escalation — security-sensitive surfaces or two-plus rework iterations require running Verifier as an independent reviewer agent when the platform provides one; the second failure escalates verification independence, not just the report.
+- **Added**: Thinker stop condition — exploration ends once the todo list can be written at file-level precision.
+- **Added**: L0 clarification — single-pass tasks skip templated phase outputs but not the capture signals.
+- **Changed**: Final-report headings render in the user's working language; the Chinese headings in the skill are the reference layout.
+- **Changed**: `examples/bug-fix.md` now demonstrates the full consolidation path — Verifier candidate flagging in both iterations, Phase 4 capture into `docs/memory/` with the index line, the conditional 知识沉淀 report section, and a fourth takeaway.
+- **Added**: `README.zh-CN.md` — Simplified Chinese usage guide, structure-aligned with the English README; language switch links added to both.
+
 ## Version 3.4.0 (2026-07-06)
 
 ### Knowledge Consolidation

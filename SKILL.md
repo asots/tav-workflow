@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.4.0
+version: 3.5.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -99,9 +99,10 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 
 - Every conclusion must cite file paths, symbols, line ranges, logs, or command output.
 - Prefer targeted reads and searches over broad file dumps.
-- If the project has a memory index (`docs/memory/MEMORY.md`), read it and pull entries relevant to the task — previously captured knowledge is first-class evidence.
+- If the project has a memory index (`docs/memory/MEMORY.md`), read it and pull entries relevant to the task — previously captured knowledge is first-class evidence. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
+- Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
 
 ### Required Thinker output
 
@@ -203,6 +204,10 @@ If the change touches authentication, authorization, user input, database querie
 - Check for hardcoded secrets, injection, path traversal, unsafe error disclosure, missing validation, and authorization bypass.
 - Block completion on critical issues.
 
+### Verifier independence escalation
+
+When the change touches a security-sensitive surface, or the same task has accumulated two or more rework iterations, run the Verifier as an independent reviewer agent when the platform provides one. The second failure escalates verification independence, not just the report — the agent that wrote a fix twice is the least likely to see what is still wrong with it.
+
 ### Required Verifier output
 
 ```markdown
@@ -229,7 +234,7 @@ Only complete after verification gates pass or are explicitly documented as unav
 
 ### Knowledge consolidation
 
-Before writing the final report, evaluate whether this cycle produced durable engineering knowledge. Capture at most 1-3 concise rules per cycle; most tasks produce none — zero captures is the default outcome, not a failure.
+Before writing the final report, evaluate whether this cycle produced durable engineering knowledge. Capture at most 1-3 concise rules per cycle; most tasks produce none — zero captures is the default outcome, not a failure. L0 tasks skip templated phase outputs but not the capture signals — a single-file patch can still hit a dependency gotcha or a user correction.
 
 Capture only when at least one signal holds:
 
@@ -238,6 +243,7 @@ Capture only when at least one signal holds:
 - A dependency, version, or platform gotcha cost a rework iteration.
 - The same gate failed twice before the real fix was found — the lesson behind a `[PUA-REPORT]`.
 - The user corrected the approach mid-task, expressing a durable preference or constraint.
+- A recalled memory entry proved stale or wrong during this cycle — updating or deleting it is a capture action and follows the same reporting rule.
 
 Never capture:
 
@@ -256,7 +262,7 @@ If the knowledge fits none of these, list the candidate in the final report. Do 
 
 ### Final report
 
-Use this final format when files were modified:
+Use this final format when files were modified. Render section headings in the user's working language — the Chinese headings below are the reference layout:
 
 ```markdown
 ## 变更摘要

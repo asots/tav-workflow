@@ -1,10 +1,12 @@
 # TAV Workflow - README
 
+English | [简体中文](README.zh-CN.md)
+
 ## Overview
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.4.0
+**Version**: 3.5.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -49,12 +51,12 @@ TAV workflow:
 
 ## Key Features
 
-- **Role separation**: read-only Thinker, minimal-change Actor, independent Verifier that starts from `git diff`, not from the Actor's summary.
+- **Role separation**: read-only Thinker, minimal-change Actor, independent Verifier that starts from `git diff`, not from the Actor's summary; security-sensitive or twice-reworked changes escalate to an independent reviewer agent.
 - **State persistence**: `.tav/state.json` enables resuming interrupted L1 work; states older than 7 days are treated as stale. See [SKILL.md](SKILL.md) Phase 0 for the schema and [references/templates/state.json](references/templates/state.json) for the full template.
 - **Native task tracking**: progress maps to the platform's real task tools (in Claude Code: `TaskCreate` / `TaskUpdate`).
 - **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [SKILL.md](SKILL.md) Phase 3.
 - **Error recovery**: plan mismatches return to Thinker, gate failures return to Actor, the same blocker failing twice triggers `[PUA-REPORT]` escalation, and critical security issues block completion.
-- **Knowledge consolidation**: after gates pass, durable lessons (non-obvious root causes, undocumented commands, dependency gotchas) are captured into the project's `docs/memory/` directory — at most 1-3 rules per cycle, indexed and recalled by the next Thinker pass. See [SKILL.md](SKILL.md) Phase 4.
+- **Knowledge consolidation**: after gates pass, durable lessons (non-obvious root causes, undocumented commands, dependency gotchas) are captured into the project's `docs/memory/` directory — at most 1-3 rules per cycle, indexed, recalled, and re-validated by the next Thinker pass. See [SKILL.md](SKILL.md) Phase 4.
 - **Spec-driven interop**: inside a `spec-driven-develop` project, one TAV cycle executes one task card and writes back progress plus telemetry. See [SKILL.md](SKILL.md) "Operating Inside a Spec-Driven Project".
 
 ## Architecture
@@ -108,5 +110,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.4.0**
+**TAV Workflow v3.5.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

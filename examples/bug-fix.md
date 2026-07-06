@@ -98,6 +98,9 @@ Phase 3 -> Reviewing
 ### Suggested Fix
 - Replace the `findById` + assign + `save()` pattern with `User.findByIdAndUpdate(..., { new: true, runValidators: true })` in both endpoints.
 
+### Consolidation Candidates
+- Direct property assignment on a Mongoose document does not trigger change detection, so `save()` persists nothing. Evidence: iteration-1 test failure with the DB re-read assertion. (Capture signal: non-obvious root cause — the symptom pointed to a missing `await`.)
+
 ### Review Result
 - Return to Actor with the fix above.
 ```
@@ -164,6 +167,9 @@ Phase 3 (iteration 2) -> Reviewing
 ### Issue Details
 - None.
 
+### Consolidation Candidates
+- Carried from iteration 1: the Mongoose change-detection gotcha, now confirmed by the passing fix.
+
 ### Review Result
 - Pass and enter Phase 4.
 
@@ -174,6 +180,19 @@ Phase 3 (iteration 2) -> Reviewing
 ```
 
 ## Phase 4: Completion
+
+Knowledge consolidation fires before the final report: the carried candidate hits capture signal 1 (non-obvious root cause that will recur). The rule is written to the project memory directory, with its `MEMORY.md` index line added in the same edit batch:
+
+```markdown
+<!-- docs/memory/mongoose-change-detection.md -->
+---
+name: mongoose-change-detection
+description: Direct property assignment on Mongoose documents bypasses change detection
+type: project
+---
+
+- Use `findByIdAndUpdate` (with `runValidators`) instead of findById + assign + `save()` — Why: direct assignment does not trigger Mongoose change detection, so `save()` persists nothing; found via a failing DB re-read assertion. Apply: any Mongoose document update path.
+```
 
 ```markdown
 ## 变更摘要
@@ -196,6 +215,9 @@ Phase 3 (iteration 2) -> Reviewing
 
 ## 后续建议
 - 为其余 6 处 `user.save()` 调用补充数据库状态断言。
+
+## 知识沉淀
+- `docs/memory/mongoose-change-detection.md` (Added) - Mongoose 直接属性赋值不触发变更检测，更新路径应使用 `findByIdAndUpdate`。
 ```
 
 ## Key Takeaways
@@ -203,6 +225,7 @@ Phase 3 (iteration 2) -> Reviewing
 1. **The first fix was plausible and wrong.** Adding `await` matched the symptom; only a test that reads the database back exposed the real defect.
 2. **Verifier independence is the safety net.** It re-read the endpoint instead of trusting the Actor's summary, found the change-detection issue, and returned an exact fix.
 3. **The loop is cheap.** One extra Actor-Verifier iteration prevented shipping a fake fix to production.
+4. **The lesson outlives the task.** The non-obvious root cause was captured into `docs/memory/`, so the next session's Thinker recalls it as first-class evidence instead of rediscovering it.
 
 ---
 
