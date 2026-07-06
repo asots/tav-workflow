@@ -69,7 +69,46 @@ Report only measurable facts:
 - Start from `git diff`, not from the Actor's summary.
 - Pick verification commands only after inspecting project files; the evidence-to-command table is in `SKILL.md` Phase 3.
 - Do not claim a check passed unless it ran and succeeded. Record unavailable commands under skipped checks.
+- Flag consolidation candidates while reviewing — rework lessons and non-obvious root causes surface here, not in Phase 4. Evaluation and capture happen in Phase 4 against the signals in `SKILL.md`.
 - Output contract: `references/templates/verifier-output.md`.
+
+## Knowledge Consolidation
+
+The capture signals, never-capture list, and write-target resolution order are defined in `SKILL.md` Phase 4 and are not repeated here. This section covers the mechanics of writing a captured rule.
+
+### Project memory directory layout
+
+The default write target is the project memory directory:
+
+```text
+docs/memory/
+  MEMORY.md          # index: one line per entry - [title](file.md) - one-line hook
+  <topic-slug>.md    # one entry per file: short frontmatter + the rule
+```
+
+Entry file frontmatter keeps three fields (`name`, `description`, `type`); the body carries the rule in the entry format below. On every capture, add or update the entry file and its `MEMORY.md` index line in the same edit batch. The directory is committed with the repo — do not add it to `.gitignore`.
+
+### Entry format
+
+One rule per entry, three parts, kept short:
+
+```markdown
+- <the rule> — Why: <evidence from this cycle>. Apply: <when/how it changes future behavior>.
+```
+
+### Write rules
+
+- Check the target surface for an equivalent rule first; update the existing entry instead of appending a duplicate.
+- Append or update in place — never rewrite or reorder surrounding content, and never touch user-written sections.
+- Match the target surface's existing structure and language (a `CLAUDE.md` rules list, a native memory file's frontmatter conventions, an `AGENTS.md` section layout).
+- One write per surface per cycle; batch multiple rules into a single edit.
+
+### Anti-patterns
+
+- Capturing to prove the workflow ran — zero captures is the normal outcome.
+- Long prose entries; if a rule needs more than ~2 lines, it is probably session context, not durable knowledge.
+- Creating ad-hoc capture files (`LEARNINGS.md`, `NOTES.md`) outside the memory directory — the workflow-defined `docs/memory/` layout is the only sanctioned new-file target; anything unresolvable goes into the final report instead.
+- Restating what a linter, type-checker, or the language itself already enforces.
 
 ## Native Task Tracking
 

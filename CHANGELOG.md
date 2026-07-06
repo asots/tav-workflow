@@ -1,5 +1,17 @@
 # TAV Workflow Changelog
 
+## Version 3.4.0 (2026-07-06)
+
+### Knowledge Consolidation
+
+- **Added**: Phase 4 "Knowledge consolidation" step — after gates pass, evaluate five capture signals (non-obvious root cause, undocumented project command, dependency/platform gotcha costing a rework, twice-failed gate lesson, durable user correction) and write at most 1-3 concise rules to an existing memory or instruction surface. An explicit never-capture list (repo-recorded content, code-derivable facts, session-only context) keeps surfaces clean; zero captures is the stated default outcome.
+- **Added**: Write-target routing by knowledge nature — project memory directory (`docs/memory/`, the committed default for engineering knowledge) → existing instruction surface (high-bar exception for rules that must be present in every session, one line max) → platform native memory (personal/machine-specific facts) → spec-driven governance surfaces. No ad-hoc capture files; unresolvable candidates are listed in the final report instead.
+- **Added**: Recall loop — Thinker evidence rules read `docs/memory/MEMORY.md` when present and pull task-relevant entries, closing the capture → index → recall cycle.
+- **Added**: Verifier required action 8 — flag consolidation candidates during review (rework lessons surface there, not in Phase 4); optional "Consolidation Candidates" section in the Verifier output template.
+- **Added**: Conditional "## 知识沉淀" report section — appended only when a surface was actually written, so reports without captures stay identical to the global standard format (no changes required in the three examples).
+- **Added**: Spec-driven interop — consolidation routes through the surfaces recorded under "Governance Status" in MASTER.md, fulfilling the governance write-back that `spec-driven-develop` Phase 5b step 4 already requires; the task card's "memory/governance impact" field feeds Phase 4 as pre-declared candidates. Mirrored in `spec-driven-develop` 1.14.1's Handoff Contract (input + write-back governance rows).
+- **Added**: Implementation guide § "Knowledge Consolidation" — entry format (rule / why / apply), write rules (dedupe before append, preserve user content, one batched write per surface), and anti-patterns.
+
 ## Version 3.3.0 (2026-07-06)
 
 ### Spec-Driven Interop

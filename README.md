@@ -4,7 +4,7 @@
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.3.0
+**Version**: 3.4.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -54,6 +54,7 @@ TAV workflow:
 - **Native task tracking**: progress maps to the platform's real task tools (in Claude Code: `TaskCreate` / `TaskUpdate`).
 - **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [SKILL.md](SKILL.md) Phase 3.
 - **Error recovery**: plan mismatches return to Thinker, gate failures return to Actor, the same blocker failing twice triggers `[PUA-REPORT]` escalation, and critical security issues block completion.
+- **Knowledge consolidation**: after gates pass, durable lessons (non-obvious root causes, undocumented commands, dependency gotchas) are captured into the project's `docs/memory/` directory — at most 1-3 rules per cycle, indexed and recalled by the next Thinker pass. See [SKILL.md](SKILL.md) Phase 4.
 - **Spec-driven interop**: inside a `spec-driven-develop` project, one TAV cycle executes one task card and writes back progress plus telemetry. See [SKILL.md](SKILL.md) "Operating Inside a Spec-Driven Project".
 
 ## Architecture
@@ -74,7 +75,7 @@ Phase 3: Verifier
     |-- git diff review, tests/lint/typecheck, security checks
     |
 Phase 4: Completion
-    |-- final report and state cleanup/archive
+    |-- knowledge consolidation, final report, state cleanup/archive
 ```
 
 ## State File
@@ -107,5 +108,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.3.0**
+**TAV Workflow v3.4.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

@@ -33,6 +33,10 @@ Phase 3 -> Reviewing
 
 - Specific fix action, or `None`.
 
+### Consolidation Candidates
+
+- Candidate rule + supporting evidence, or `None`. (Evaluated in Phase 4 against the capture signals in `SKILL.md`.)
+
 ### Review Result
 
 - Pass and enter Phase 4, or return to Actor/Thinker with exact reason.

@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.3.0
+version: 3.4.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -99,6 +99,7 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 
 - Every conclusion must cite file paths, symbols, line ranges, logs, or command output.
 - Prefer targeted reads and searches over broad file dumps.
+- If the project has a memory index (`docs/memory/MEMORY.md`), read it and pull entries relevant to the task — previously captured knowledge is first-class evidence.
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
 
@@ -176,6 +177,7 @@ Verifier checks the change independently. Do not rely on Actor's summary.
 5. Check security-sensitive surfaces when relevant.
 6. Verify behavior, not just file presence.
 7. Record pass/fail results in native task tracking (and `.tav/state.json` if it exists).
+8. Flag knowledge consolidation candidates observed during review — rework lessons, non-obvious root causes, undocumented project commands — for evaluation in Phase 4.
 
 ### Stack-aware verification command selection
 
@@ -225,6 +227,35 @@ If the change touches authentication, authorization, user input, database querie
 
 Only complete after verification gates pass or are explicitly documented as unavailable.
 
+### Knowledge consolidation
+
+Before writing the final report, evaluate whether this cycle produced durable engineering knowledge. Capture at most 1-3 concise rules per cycle; most tasks produce none — zero captures is the default outcome, not a failure.
+
+Capture only when at least one signal holds:
+
+- The root cause was non-obvious (the surface symptom pointed elsewhere) and the pattern will recur.
+- A project-specific command, script, or environment requirement was discovered that is recorded nowhere in the repo.
+- A dependency, version, or platform gotcha cost a rework iteration.
+- The same gate failed twice before the real fix was found — the lesson behind a `[PUA-REPORT]`.
+- The user corrected the approach mid-task, expressing a durable preference or constraint.
+
+Never capture:
+
+- Anything the repo already records (code structure, existing `CLAUDE.md`/`AGENTS.md` rules, git history, README).
+- Facts derivable by reading the code.
+- Session-only context (this cycle's todo list, temporary decisions).
+
+Write target — route by the nature of the knowledge, not by surface availability:
+
+1. **Project memory directory** (`docs/memory/`) — the default for project engineering knowledge: root-cause patterns, commands, gotchas, invariants. One entry per file plus a `MEMORY.md` index line; committed with the repo so the knowledge is versioned, reviewable, and shared. Creating this directory on first capture is part of this workflow, not a new-truth-source violation.
+2. **An existing instruction surface** (`CLAUDE.md`, `AGENTS.md`, or an existing platform rule file) — high-bar exception, only for a rule that must be unconditionally present in every session (a hard behavioral constraint). Add at most one line; link to the memory entry for detail.
+3. **The platform's native project memory** — personal or machine-specific facts that do not belong in the repo (local paths, personal workflow).
+4. **In a spec-driven project** — follow the surfaces already recorded under "Governance Status" in `docs/progress/MASTER.md`; once the project memory directory is registered there, it is the preferred memory surface.
+
+If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the memory directory. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
+
+### Final report
+
 Use this final format when files were modified:
 
 ```markdown
@@ -247,9 +278,16 @@ Use this final format when files were modified:
 - Practical next steps.
 ```
 
+When knowledge consolidation wrote to a memory or instruction surface, append this section to the report. Omit it entirely when nothing was captured, keeping the report identical to the global standard format:
+
+```markdown
+## 知识沉淀
+- `surface or file` - rule captured, one line per rule.
+```
+
 Report only measurable facts. File and line counts come from `git diff --stat`; never estimate token usage or wall-clock duration.
 
-In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires the write-back: progress update (Issue/checkbox + MASTER.md) plus post-task telemetry. The task is not complete until both are recorded.
+In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires the write-back: progress update (Issue/checkbox + MASTER.md) plus post-task telemetry. The task is not complete until both are recorded. Knowledge consolidation, when it fires, routes through the governance surfaces resolved in MASTER.md.
 
 Archive or remove `.tav/state.json` only after completion and only if it belongs to the completed workflow. Do not delete VCS metadata under any circumstance.
 
@@ -288,11 +326,13 @@ When `docs/progress/MASTER.md` exists and the current task comes from a `spec-dr
 - Take the task definition from the pending GitHub Issue or phase-file entry, not from a re-interpretation of the original user request.
 - Treat the task card's acceptance criteria as the baseline of the verification plan; add stack-appropriate gates on top.
 - Treat the task card's S.U.P.E.R design drivers as additional Verifier check items.
+- Treat the task card's memory/governance impact field as pre-declared candidates for Phase 4 knowledge consolidation.
 
 **Completion write-back (after Verifier passes):**
 
 - Close the Issue via PR (`closes #N`) or check the checkbox in the phase file, and update the "Current Status" section of MASTER.md.
 - Report post-task telemetry from observed TAV signals: effort level derived from rework iterations and Thinker returns, plus the count of files touched beyond the task card's "Affected Files" list. The scale and storage protocol live in `spec-driven-develop` `references/adaptive-control.md` § 1.
+- Route knowledge consolidation through the surfaces recorded under "Governance Status" in MASTER.md — durable facts to the resolved memory surface, agent-behavior rules to the resolved instruction surfaces. This fulfills the governance write-back that `spec-driven-develop` Phase 5b step 4 already requires and is mirrored in its Handoff Contract write-back table.
 - On `[PUA-REPORT]` or a blocked state, record it on the Issue or phase file before pausing — the spec-driven drift controller needs that signal.
 
 **State ownership:**
@@ -323,7 +363,7 @@ Read these on demand, not upfront:
 
 - `references/templates/state.json` - read before creating `.tav/state.json` for the first time.
 - `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - read before producing a phase output when the inline format above is not detailed enough.
-- `references/implementation-guide.md` - operational details: state lifecycle, native task tracking, metrics rules, safety notes.
+- `references/implementation-guide.md` - operational details: state lifecycle, native task tracking, metrics rules, knowledge consolidation mechanics, safety notes.
 - `examples/bug-fix.md` - two-iteration loop where Verifier catches an incomplete fix.
 - `examples/rate-limiting.md` - full L1 walkthrough including state file evolution.
 - `examples/refactoring.md` - behavior-preserving extraction with plan-mismatch recovery.
