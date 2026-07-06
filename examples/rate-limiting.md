@@ -54,7 +54,7 @@ Phase 1 -> Analyzing
 
 ```json
 {
-  "version": "3.3.0",
+  "version": "3.5.0",
   "task_id": "tav-20260706-083000",
   "user_request": "Add rate limiting to the user login API to prevent brute force attacks",
   "task_tier": "L1",
@@ -155,6 +155,9 @@ Phase 3 -> Reviewing
 
 ### Suggested Fix
 - Optional follow-up: wrap store commands to fail open with a logged warning, or document fail-closed as intended.
+
+### Consolidation Candidates
+- None. The Redis fail-closed trade-off is a residual risk, not durable knowledge; the OAuth exemption is derivable from the route structure (never-capture: code-derivable facts).
 
 ### Review Result
 - Pass and enter Phase 4 (warning recorded as residual risk).

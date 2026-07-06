@@ -11,6 +11,7 @@
 - **Changed**: Final-report headings render in the user's working language; the Chinese headings in the skill are the reference layout.
 - **Changed**: `examples/bug-fix.md` now demonstrates the full consolidation path — Verifier candidate flagging in both iterations, Phase 4 capture into `docs/memory/` with the index line, the conditional 知识沉淀 report section, and a fourth takeaway.
 - **Added**: `README.zh-CN.md` — Simplified Chinese usage guide, structure-aligned with the English README; language switch links added to both.
+- **Changed**: `examples/rate-limiting.md` and `examples/refactoring.md` Verifier outputs aligned with the template — explicit `Consolidation Candidates: None` with exclusion reasoning, demonstrating that zero captures is the normal outcome; state-template and example `version` fields bumped to 3.5.0.
 
 ## Version 3.4.0 (2026-07-06)
 

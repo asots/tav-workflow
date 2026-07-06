@@ -120,6 +120,9 @@ Phase 3 -> Reviewing
 ### Suggested Fix
 - Optional: wrap Stripe errors in `processPayment` for clearer messages. Not part of the approved plan; record as follow-up, do not improvise.
 
+### Consolidation Candidates
+- None. Extraction boundaries and the behavior-contract rule are visible in the code and tests; nothing here outlives the task (zero captures is the default outcome).
+
 ### Review Result
 - Pass and enter Phase 4.
 
