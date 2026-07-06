@@ -186,7 +186,7 @@ Phase 3 (iteration 2) -> Reviewing
 - `tests/api/admin.test.ts` (Modified): 增加数据库回读断言。
 
 ## 验证结果
-- [x] `npm test` passed (5 passing)
+- ✅ `npm test` passed (5 passing)
 
 ## 失败或未执行的命令
 - None.

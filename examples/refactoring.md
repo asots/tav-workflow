@@ -140,9 +140,9 @@ Phase 3 -> Reviewing
 - `tests/services/orderService.unit.test.ts` (Added): 21 个单元测试。
 
 ## 验证结果
-- [x] `npm test -- orderService` passed (24 passing, 集成测试未修改)
-- [x] `npm run typecheck` passed
-- [x] `npm run lint` passed
+- ✅ `npm test -- orderService` passed (24 passing, 集成测试未修改)
+- ✅ `npm run typecheck` passed
+- ✅ `npm run lint` passed
 
 ## 失败或未执行的命令
 - None.

@@ -54,7 +54,7 @@ Phase 1 -> Analyzing
 
 ```json
 {
-  "version": "3.2.0",
+  "version": "3.3.0",
   "task_id": "tav-20260706-083000",
   "user_request": "Add rate limiting to the user login API to prevent brute force attacks",
   "task_tier": "L1",
@@ -178,9 +178,9 @@ Phase 3 -> Reviewing
 - `tests/api/auth.test.ts` (Modified): 新增 429 限流测试。
 
 ## 验证结果
-- [x] `npm run lint` passed
-- [x] `npm run typecheck` passed
-- [x] `npm test -- auth.test.ts` passed (6 passing)
+- ✅ `npm run lint` passed
+- ✅ `npm run typecheck` passed
+- ✅ `npm test -- auth.test.ts` passed (6 passing)
 
 ## 失败或未执行的命令
 - None.

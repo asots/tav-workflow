@@ -1,5 +1,21 @@
 # TAV Workflow Changelog
 
+## Version 3.3.0 (2026-07-06)
+
+### Spec-Driven Interop
+
+- **Added**: "L2 Escalation Signals" — a quantified two-of-four test (3+ modules, multi-session or ~10+ files, architectural decisions, acceptance criteria beyond one cycle) shared verbatim with `spec-driven-develop` § "Escalation Signals", so both skills route borderline refactors the same way.
+- **Added**: "Operating Inside a Spec-Driven Project" section — task intake from Issue/phase-file task cards, completion write-back (progress plus post-task telemetry derived from TAV execution signals), and explicit state ownership: `docs/progress/MASTER.md` owns project-level progress while `.tav/state.json` stays scoped to a single task.
+- **Added**: Phase 0 now also detects `docs/progress/MASTER.md` and switches to spec-driven interop behavior when the current task belongs to that plan.
+- **Added**: Completion phase requires the spec-driven write-back (progress + telemetry) before a task counts as done.
+
+### Counterpart Changes (spec-driven-develop 1.14.0)
+
+- Trigger description narrowed: bare "重构/refactor" no longer pulls single-module or local refactors away from TAV.
+- "When Not to Use" + "Escalation Signals" and a per-task "Boundary with TAV" Handoff Contract (input mapping, write-back mapping, state ownership) added to the core SKILL.
+- Adaptive-control effort scale converted from wall-clock time to TAV-observable execution signals (rework iterations, plan returns, unplanned files), consistent with this skill's metrics rules.
+- The `task-executor` agent prompt now runs each task as one TAV cycle and reports an "Execution Signals" section (rework iterations, plan returns, unplanned files) that feeds the adaptive-control telemetry.
+
 ## Version 3.2.0 (2026-07-06)
 
 ### Consistency Fixes

@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.2.0
+version: 3.3.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -44,6 +44,17 @@ Choose the smallest workflow that is still safe.
 | L1 | Standard bug fix or feature touching multiple files | Full TAV: Thinker plan, Actor implementation, quality gates, Verifier review. |
 | L2 | Architecture, migration, auth overhaul, database schema, distributed flow | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV. |
 
+### L2 Escalation Signals
+
+Keep this list in sync with `spec-driven-develop` § "Escalation Signals" — both skills must apply the same test. Escalate to L2 only when **at least two** of these hold; otherwise stay at L0/L1:
+
+- The change spans 3+ modules/subsystems, or breaks a public API/schema contract.
+- The work will realistically span multiple sessions or exceed ~10 files.
+- Architectural decisions are required (layering, dependency direction, technology selection).
+- Acceptance criteria cannot be defined within a single Thinker-Actor-Verifier cycle.
+
+A refactor confined to one module — however messy — stays at L1.
+
 When unsure, choose the higher tier.
 
 ---
@@ -58,6 +69,8 @@ For L1 tasks, check for `.tav/state.json` in the target project root before any 
 - If `last_update` is older than 7 days, treat the state as stale and ask the user before resuming or replacing it.
 - If it describes a different task, ask the user before replacing or archiving it.
 - If it does not exist, start fresh.
+
+Also check for `docs/progress/MASTER.md` in the target project. If it exists and the current task belongs to that plan, this TAV cycle is operating inside a `spec-driven-develop` project: follow "Operating Inside a Spec-Driven Project" below for task intake, write-back, and state ownership.
 
 Create `.tav/state.json` only when the work is likely to span sessions or needs multiple Actor-Verifier iterations. For ordinary single-session L1 tasks, the platform's native task tracker is sufficient.
 
@@ -222,7 +235,7 @@ Use this final format when files were modified:
 - `path/to/file` (Modified): summary.
 
 ## 验证结果
-- [x] `command` passed, or exact observed result.
+- ✅ `command` passed, or exact observed result.
 
 ## 失败或未执行的命令
 - `command` - reason.
@@ -235,6 +248,8 @@ Use this final format when files were modified:
 ```
 
 Report only measurable facts. File and line counts come from `git diff --stat`; never estimate token usage or wall-clock duration.
+
+In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires the write-back: progress update (Issue/checkbox + MASTER.md) plus post-task telemetry. The task is not complete until both are recorded.
 
 Archive or remove `.tav/state.json` only after completion and only if it belongs to the completed workflow. Do not delete VCS metadata under any circumstance.
 
@@ -261,6 +276,29 @@ Archive or remove `.tav/state.json` only after completion and only if it belongs
 - 异常上下文：[Terminal traces, exception stack, or error block]
 - 惩罚性反思：[Logic correction and next safe action]
 ```
+
+---
+
+## Operating Inside a Spec-Driven Project
+
+When `docs/progress/MASTER.md` exists and the current task comes from a `spec-driven-develop` plan, one TAV cycle executes exactly one task card. This is the execution half of the Handoff Contract defined in `spec-driven-develop` § "Boundary with TAV" — keep both sides in sync.
+
+**Task intake (Thinker):**
+
+- Take the task definition from the pending GitHub Issue or phase-file entry, not from a re-interpretation of the original user request.
+- Treat the task card's acceptance criteria as the baseline of the verification plan; add stack-appropriate gates on top.
+- Treat the task card's S.U.P.E.R design drivers as additional Verifier check items.
+
+**Completion write-back (after Verifier passes):**
+
+- Close the Issue via PR (`closes #N`) or check the checkbox in the phase file, and update the "Current Status" section of MASTER.md.
+- Report post-task telemetry from observed TAV signals: effort level derived from rework iterations and Thinker returns, plus the count of files touched beyond the task card's "Affected Files" list. The scale and storage protocol live in `spec-driven-develop` `references/adaptive-control.md` § 1.
+- On `[PUA-REPORT]` or a blocked state, record it on the Issue or phase file before pausing — the spec-driven drift controller needs that signal.
+
+**State ownership:**
+
+- `docs/progress/MASTER.md` (plus GitHub Issues) is the project-level authority; never duplicate project progress into `.tav/state.json`.
+- `.tav/state.json` stays scoped to the single task in flight and is archived or deleted when that task completes.
 
 ---
 
