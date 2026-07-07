@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.5.0
+version: 3.6.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -44,6 +44,17 @@ Choose the smallest workflow that is still safe.
 | L1 | Standard bug fix or feature touching multiple files | Full TAV: Thinker plan, Actor implementation, quality gates, Verifier review. |
 | L2 | Architecture, migration, auth overhaul, database schema, distributed flow | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV. |
 
+### L0 vs L1 boundary
+
+Tier is about risk and blast radius, not just file count. Choose L1 when **any** of these hold; otherwise L0:
+
+- The change touches a security-sensitive surface (auth, user input, DB queries, file paths, payments, secrets, external APIs).
+- The change can affect runtime behavior beyond the edited file (shared state, public API, config consumed by other services).
+- The fix needs a new or strengthened test to prove correctness.
+- The diff will likely exceed ~30 lines or touch 2+ files.
+
+A one-line typo or config-value change with an obvious, local effect stays L0 even if it edits a "scary" file. When unsure, choose the higher tier.
+
 ### L2 Escalation Signals
 
 Keep this list in sync with `spec-driven-develop` § "Escalation Signals" — both skills must apply the same test. Escalate to L2 only when **at least two** of these hold; otherwise stay at L0/L1:
@@ -63,7 +74,7 @@ When unsure, choose the higher tier.
 
 Skip this phase entirely for L0 tasks.
 
-For L1 tasks, check for `.tav/state.json` in the target project root before any analysis or edits.
+For L1 tasks, check for `.tav/state.json` in the target project root before any analysis or edits. If multiple L1 tasks are running concurrently in the same project, use a task-scoped state file named `.tav/state-<task_id>.json` instead, and resume only from the file whose `task_id` matches the current request.
 
 - If it exists, matches the current task, and `last_update` is within 7 days, load it and resume from `current_phase`.
 - If `last_update` is older than 7 days, treat the state as stale and ask the user before resuming or replacing it.
@@ -73,6 +84,8 @@ For L1 tasks, check for `.tav/state.json` in the target project root before any 
 Also check for `docs/progress/MASTER.md` in the target project. If it exists and the current task belongs to that plan, this TAV cycle is operating inside a `spec-driven-develop` project: follow "Operating Inside a Spec-Driven Project" below for task intake, write-back, and state ownership.
 
 Create `.tav/state.json` only when the work is likely to span sessions or needs multiple Actor-Verifier iterations. For ordinary single-session L1 tasks, the platform's native task tracker is sufficient.
+
+Never let two TAV cycles write the same state file. `current_phase`, `todo_list`, and `failure_counts` belong to one task only and must not leak across parallel work.
 
 Key state fields: `current_phase` (`thinker|actor|verifier|complete|blocked`), `task_tier` (`L0|L1|L2`), `current_risk_level` (`low|medium|high|critical`), `todo_list`, `completed_steps`, `verification_commands`, `failure_counts`, `last_update`. Read `references/templates/state.json` before creating the file for the first time; keep field names exactly as the template defines them.
 
@@ -99,7 +112,7 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 
 - Every conclusion must cite file paths, symbols, line ranges, logs, or command output.
 - Prefer targeted reads and searches over broad file dumps.
-- If the project has a memory index (`docs/memory/MEMORY.md`), read it and pull entries relevant to the task — previously captured knowledge is first-class evidence. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
+- If the project has a memory index (`docs/memory/MEMORY.md`), read **only the index lines** (one hook per entry) and shortlist entries whose hook mentions the task's files, modules, or topic. Open only the shortlisted entry files, then use their `applies_to`/`tags` frontmatter to confirm relevance and discard mismatches — previously captured knowledge is first-class evidence, but loading every entry wastes context. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
 - Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
@@ -173,7 +186,7 @@ Verifier checks the change independently. Do not rely on Actor's summary.
 
 1. Run `git diff` (or the VCS equivalent) first and review the actual changes, not the reported ones.
 2. Check surrounding code and references affected by the change.
-3. Run the verification commands selected by Thinker when possible.
+3. Treat Thinker's `verification plan` as candidate commands; confirm each still matches the project stack (re-read the evidence if unsure), run them, and add any stack-appropriate checks Thinker missed. Do not silently re-derive the whole list from scratch.
 4. Add stack-appropriate checks if Thinker missed obvious project commands.
 5. Check security-sensitive surfaces when relevant.
 6. Verify behavior, not just file presence.
@@ -192,9 +205,30 @@ Use evidence from project files before choosing commands.
 | `pyproject.toml` | `ruff check .`, `mypy .`, `pytest` when configured |
 | `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
 | `go.mod` | `go test ./...`, `go vet ./...` when applicable |
-| Other stacks | Infer from CI config, README, Makefile, or project scripts; never invent commands |
+| `pom.xml` / `build.gradle` | `mvn -q test`, `./gradlew test`; `mvn checkstyle:check` or `./gradlew check` when configured |
+| `*.csproj` / `*.sln` | `dotnet build`, `dotnet test`; `dotnet format --verify-no-changes` when available |
+| `Gemfile` / `*.rb` | `bundle exec rake test` or `bundle exec rspec`; `rubocop` when configured |
+| `composer.json` | `composer test` or `vendor/bin/phpunit`; `php-cs-fixer` or `composer lint` when configured |
+| `CMakeLists.txt` (C/C++) | `cmake --build build && ctest --test-dir build`; infer sanitizer/clang-tidy from config |
+| `pubspec.yaml` (Dart/Flutter) | `flutter analyze`, `flutter test` |
+| Other stacks | Infer from CI config (`.github/workflows`, `.gitlab-ci.yml`), README, Makefile, or project scripts; never invent commands |
 
 If no reliable command exists, state that explicitly under failed or unexecuted commands. Never claim verification passed without running or justifying the gate.
+
+### Configuration and IaC verification
+
+When the change touches configuration or infrastructure-as-code rather than application source, the `git diff` review still comes first, but the gate commands differ:
+
+| Evidence | Typical commands |
+|----------|------------------|
+| `.github/workflows/*.yml` | `actionlint` if available; otherwise re-read the workflow YAML for syntax and secret references |
+| `Dockerfile` / `docker-compose.yml` | `docker build` (and `docker compose config` to validate the compose file) |
+| `*.tf` / `*.tofu` | `terraform fmt -check`, `terraform validate`; `terraform plan` only in a prepared environment, never commit state |
+| `Chart.yaml` / `values.yaml` | `helm lint`, `helm template` to render and catch template errors |
+| `*.yml`/`*.yaml` (generic) | A YAML/schema linter (`yamllint`, `prettier --check`) when configured |
+| K8s manifests | `kubectl apply --dry-run=server -f` (requires cluster context) or `kubeval`/`kubeconform` offline |
+
+Never run `terraform apply` or `kubectl apply` as a verification step during a TAV cycle — those mutate external state. Validation and planning only; record the command as skipped if no safe variant exists.
 
 ### Security-sensitive branch
 
@@ -206,7 +240,7 @@ If the change touches authentication, authorization, user input, database querie
 
 ### Verifier independence escalation
 
-When the change touches a security-sensitive surface, or the same task has accumulated two or more rework iterations, run the Verifier as an independent reviewer agent when the platform provides one. The second failure escalates verification independence, not just the report — the agent that wrote a fix twice is the least likely to see what is still wrong with it.
+When the change touches a security-sensitive surface, or the same task has accumulated two or more rework iterations, run the Verifier as an independent reviewer agent when the platform provides one. A first rework iteration should trigger an explicit side-effect review and consider independent verification; the second consecutive failure requires it. The second failure escalates verification independence, not just the report — the agent that wrote a fix twice is the least likely to see what is still wrong with it.
 
 ### Required Verifier output
 
@@ -262,7 +296,17 @@ If the knowledge fits none of these, list the candidate in the final report. Do 
 
 ### Final report
 
-Use this final format when files were modified. Render section headings in the user's working language — the Chinese headings below are the reference layout:
+Use this final format when files were modified. Render section headings in the user's working language. The Chinese headings below are the reference layout; for English sessions use this mapping:
+
+| Chinese (reference) | English |
+|--------------------|---------|
+| 变更摘要 | Summary |
+| 涉及文件 | Files Changed |
+| 验证结果 | Verification |
+| 失败或未执行的命令 | Failed or Skipped Commands |
+| 剩余风险 | Residual Risks |
+| 后续建议 | Next Steps |
+| 知识沉淀 | Knowledge Consolidation |
 
 ```markdown
 ## 变更摘要
@@ -310,6 +354,30 @@ Archive or remove `.tav/state.json` only after completion and only if it belongs
 | Critical security issue | Verifier | Block completion and request explicit user decision |
 | Token/context pressure | Any phase | Save state, summarize progress, pause |
 
+### Risk level dynamics
+
+Risk level is set in Thinker and may change as evidence accumulates. Escalate (never silently downgrade) when the Verifier surfaces new information:
+
+| Level | Typical trigger | Required action |
+|-------|-----------------|-----------------|
+| low | Localized, obvious change, no security/data surface | Standard TAV |
+| medium | Multi-file or behavior-affecting change, no sensitive surface | Standard TAV; Verifier checks side effects |
+| high | Touches a security-sensitive surface, or first rework iteration | Explicit side-effect review; run Verifier as an independent reviewer agent when security-sensitive or already at the second consecutive failure |
+| critical | Confirmed security issue, data-loss risk, or two+ rework iterations on a sensitive surface | Block completion; request explicit user decision before proceeding |
+
+When risk escalates to high or critical mid-cycle, re-run the security-sensitive branch and consider promoting the Verifier to an independent reviewer agent. Downgrading requires fresh Thinker evidence that the original trigger no longer applies — record the reason in the Verifier output.
+
+### Failure counting semantics
+
+The "same blocker fails twice" rule needs a stable key so the count is meaningful:
+
+- **Blocker key** = `todo_id` (or the verification command string when the failure is a gate command) + a normalized error signature. Normalize by keeping the stable part (error type/code, failing rule or test name) and stripping volatile parts (line numbers, file offsets, timestamps, memory addresses) — `TS2532`, not `TS2532-dashboard.ts:8`. Record the normalized key from the first failure; never widen a key after the fact to make two failures match. Store it under `failure_counts.by_blocker` for plan/structural failures and `failure_counts.by_command` for gate-command failures.
+- **Consecutive**: only consecutive failures of the *same* key count. A success or a Thinker re-plan resets the counter for that key.
+- **Two-strike trigger**: the second consecutive failure of the same key emits `[PUA-REPORT]`. A third is not required — escalate on two.
+- **Re-plan resets**: when the Thinker revises the todo list after a return, all `failure_counts` entries for the superseded todos are cleared, because the blocker key is no longer valid.
+
+Never reset a counter to avoid escalation. If the same root cause keeps surfacing under different keys, treat that as a Thinker signal that the diagnosis is wrong.
+
 ### PUA escalation format
 
 ```text
@@ -344,7 +412,7 @@ When `docs/progress/MASTER.md` exists and the current task comes from a `spec-dr
 **State ownership:**
 
 - `docs/progress/MASTER.md` (plus GitHub Issues) is the project-level authority; never duplicate project progress into `.tav/state.json`.
-- `.tav/state.json` stays scoped to the single task in flight and is archived or deleted when that task completes.
+- `.tav/state.json` stays scoped to the single task in flight and is archived or deleted when that task completes. For concurrent L1 tasks, use `.tav/state-<task_id>.json` per task; never share writes between tasks.
 
 ---
 

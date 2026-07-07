@@ -1,5 +1,31 @@
 # TAV Workflow Changelog
 
+## Version 3.6.0 (2026-07-06)
+
+### Broader stack and config coverage
+
+- **Added**: Stack-aware verification command table extended with Java/Maven/Gradle, .NET, Ruby, PHP, C/C++, and Dart/Flutter.
+- **Added**: Configuration and IaC verification branch (GitHub Actions, Docker, Terraform, Helm, YAML, K8s) with a "validate, never apply" rule.
+
+### Sharper tier and risk rules
+
+- **Added**: L0 vs L1 boundary — explicit triggers (security surface, cross-file effect, new test needed, ~30-line/2-file threshold) so tier choice is about risk, not file count.
+- **Added**: Risk level dynamics — low/medium/high/critical triggers and the escalate-never-silently-downgrade rule; high/critical promotes the Verifier to an independent reviewer agent.
+- **Added**: Failure counting semantics — the blocker key (`todo_id`/command + normalized error signature, volatile parts like line numbers stripped), consecutiveness, two-strike trigger, and re-plan reset rule that govern `[PUA-REPORT]`. Key format is defined once in `SKILL.md`; the `state.json` template keeps `failure_counts` as empty maps.
+
+### Knowledge and state hygiene
+
+- **Added**: Memory entry frontmatter gains `tags` and `applies_to`; Thinker shortlists by `MEMORY.md` index-line hooks, opens only shortlisted entries, and confirms relevance via frontmatter — never the whole directory.
+- **Changed**: `phase_outputs` in `state.json` is now status + pointer/summary only, not a full copy of the templated output.
+- **Changed**: Thinker's verification plan is labeled candidate commands; the Verifier confirms and supplements rather than re-deriving from scratch.
+
+### Report and docs
+
+- **Added**: Final-report heading mapping between the Chinese reference layout and English.
+- **Added**: `.gitignore` (ignore `.tav/` and machine-specific `.claude/settings.local.json`).
+- **Added**: `CONTRIBUTING.md` and `scripts/verify.ps1` — documentation self-check for version consistency (single source = `SKILL.md` frontmatter) and internal link integrity.
+- **Added**: `examples/l0-quick-patch.md` (L0 lightweight single-pass flow) and `examples/pua-escalation.md` (two-strike `[PUA-REPORT]` with independence escalation).
+
 ## Version 3.5.0 (2026-07-06)
 
 ### Closing the Loop

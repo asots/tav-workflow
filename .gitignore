@@ -1,0 +1,11 @@
+# TAV workflow runtime state — created by TAV in target projects, never commit
+.tav/
+
+# Claude Code local settings — machine-specific permission allowlist, do not commit
+.claude/settings.local.json
+
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*~

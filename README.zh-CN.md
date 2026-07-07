@@ -6,7 +6,7 @@
 
 TAV（Think-Act-Verify，思考-执行-验证）是一个面向范围明确的软件变更的结构化工作流。它将分析、执行、验证三种职责分离，确保每一次非平凡的修改都基于证据、保持最小化、并在宣告完成前经过独立检查。
 
-**版本**：3.5.0
+**版本**：3.6.0
 **状态**：Stable
 
 权威规范位于 [SKILL.md](SKILL.md)。本 README 面向读者提供概览；schema、命令表、输出契约只在 skill 文件中定义一次，此处仅作引用。
@@ -97,6 +97,8 @@ Phase 4: Completion
 - [examples/bug-fix.md](examples/bug-fix.md) - Verifier 捕获不完整修复的两轮迭代，含完整知识沉淀链路演示。
 - [examples/rate-limiting.md](examples/rate-limiting.md) - 完整 L1 演练，含状态文件演化。
 - [examples/refactoring.md](examples/refactoring.md) - 行为保持的提取重构，含计划不匹配恢复演示。
+- [examples/l0-quick-patch.md](examples/l0-quick-patch.md) - L0 轻量单遍流程，不建状态文件。
+- [examples/pua-escalation.md](examples/pua-escalation.md) - 两次同阻塞失败触发 `[PUA-REPORT]` 与验证独立性升级。
 
 ## 文档
 
@@ -105,6 +107,7 @@ Phase 4: Completion
 - [实现指南](references/implementation-guide.md) - 操作细节。
 - [状态模板](references/templates/state.json) - 持久化状态 schema。
 - [Thinker 输出](references/templates/thinker-output.md) / [Actor 输出](references/templates/actor-output.md) / [Verifier 输出](references/templates/verifier-output.md) - 阶段输出格式。
+- [CONTRIBUTING.md](CONTRIBUTING.md) - 如何编辑本技能并运行文档自检。
 
 ## 许可证
 
@@ -112,5 +115,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.5.0**
+**TAV Workflow v3.6.0**
 *Think-Act-Verify：基于证据的变更、最小化执行、经验证的完成。*

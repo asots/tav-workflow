@@ -23,7 +23,7 @@ Phase 1 -> Analyzing
 - Regression, compatibility, security, or operational risks.
 
 ### Verification Plan
-- `command` - why this validates the change.
+- Candidate `command` - why this validates the change. (Verifier confirms each still matches the project stack and may add stack-appropriate checks Thinker missed.)
 - Skipped or unavailable checks - reason.
 
 -> Enter Phase 2: Actor, or stop for clarification/escalation.

@@ -33,13 +33,18 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 ### Updates
 
 - Update `current_phase`, `completed_steps`, and `last_update` at each phase transition.
-- Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; two consecutive failures of the same entry triggers `[PUA-REPORT]` (format in `SKILL.md`).
+- Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `SKILL.md` § "Failure counting semantics" — two consecutive failures of the same key triggers `[PUA-REPORT]`.
+- `phase_outputs` holds status plus a short pointer/summary only (e.g. `thinker.status`, an evidence count) — the authoritative phase output is the templated block produced in the session, not a full copy in state. Never duplicate the whole Thinker/Actor/Verifier output into state; it drifts and wastes space.
 
 ### Staleness and cleanup
 
 - A state whose `last_update` is older than 7 days is stale: ask the user before resuming or replacing it.
 - A state describing a different task: ask the user before replacing or archiving it.
 - On completion, archive to `.tav/archive/` or delete the file - only if it belongs to the completed workflow.
+
+### Concurrent tasks
+
+`.tav/state.json` tracks a single task. If two L1 tasks run concurrently in the same project, give each its own state file named `.tav/state-<task_id>.json` and resume from the matching file in Phase 0. Never let two cycles write the same state file — the `failure_counts` and `current_phase` of one task must not leak into another.
 
 ## Metrics Rules
 
@@ -86,13 +91,21 @@ docs/memory/
   <topic-slug>.md    # one entry per file: short frontmatter + the rule
 ```
 
-Entry file frontmatter keeps three fields (`name`, `description`, `type`); the body carries the rule in the entry format below. On every capture, add or update the entry file and its `MEMORY.md` index line in the same edit batch. The directory is committed with the repo — do not add it to `.gitignore`.
+Entry file frontmatter keeps five fields (`name`, `description`, `type`, `tags`, `applies_to`); the body carries the rule in the entry format below. `tags` is a list of free-form keywords; `applies_to` is a list of file-path globs or module names the rule concerns. Thinker shortlists entries by their `MEMORY.md` index-line hook, opens only the shortlisted files, and uses `tags`/`applies_to` to confirm relevance — so keep the index hook specific enough to shortlist by. On every capture, add or update the entry file and its `MEMORY.md` index line in the same edit batch. The directory is committed with the repo — do not add it to `.gitignore`.
 
 ### Entry format
 
-One rule per entry, three parts, kept short:
+One rule per entry, with frontmatter plus a short body:
 
 ```markdown
+---
+name: null-guard-at-source
+description: Guard nullable values once at the owning call site.
+type: rule
+tags: [typescript, null-safety]
+applies_to: ["src/dashboard/**", "src/api/user.ts"]
+---
+
 - <the rule> — Why: <evidence from this cycle>. Apply: <when/how it changes future behavior>.
 ```
 

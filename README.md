@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.5.0
+**Version**: 3.6.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -90,11 +90,15 @@ Recommended `.gitignore` entry:
 .tav/
 ```
 
+Note: the knowledge-consolidation directory `docs/memory/` must be committed with the repo — do **not** add it to `.gitignore`.
+
 ## Examples
 
 - [examples/bug-fix.md](examples/bug-fix.md) - two-iteration loop where Verifier catches an incomplete fix.
 - [examples/rate-limiting.md](examples/rate-limiting.md) - full L1 walkthrough including state file evolution.
 - [examples/refactoring.md](examples/refactoring.md) - behavior-preserving extraction with plan-mismatch recovery.
+- [examples/l0-quick-patch.md](examples/l0-quick-patch.md) - L0 lightweight single-pass flow with no state file.
+- [examples/pua-escalation.md](examples/pua-escalation.md) - two-strike [PUA-REPORT] with Verifier independence escalation.
 
 ## Documentation
 
@@ -103,6 +107,7 @@ Recommended `.gitignore` entry:
 - [Implementation Guide](references/implementation-guide.md) - operational guidance.
 - [State Template](references/templates/state.json) - durable state schema.
 - [Thinker Output](references/templates/thinker-output.md) / [Actor Output](references/templates/actor-output.md) / [Verifier Output](references/templates/verifier-output.md) - phase output formats.
+- [CONTRIBUTING.md](CONTRIBUTING.md) - how to edit this skill and run the documentation self-check.
 
 ## License
 
@@ -110,5 +115,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.5.0**
+**TAV Workflow v3.6.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

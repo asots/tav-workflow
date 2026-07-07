@@ -1,5 +1,5 @@
 {
-  "version": "3.5.0",
+  "version": "3.6.0",
   "task_id": "tav-example-task",
   "user_request": "Example user request",
   "task_tier": "L1",
@@ -33,17 +33,19 @@
   "phase_outputs": {
     "thinker": {
       "status": "in_progress",
-      "evidence": [],
-      "analysis_summary": "",
-      "risks": []
+      "summary": "one-line pointer; full output is the templated block in the session",
+      "evidence_count": 0
     },
     "actor": {
       "status": "pending",
-      "changes": []
+      "summary": "",
+      "changes_count": 0
     },
     "verifier": {
       "status": "pending",
-      "results": []
+      "summary": "",
+      "pass_count": 0,
+      "fail_count": 0
     }
   },
   "metrics": {
