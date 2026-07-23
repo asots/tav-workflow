@@ -10,6 +10,7 @@ This repository is a skill specification (documentation), not a runtime library.
    pwsh scripts/verify.ps1
    ```
    It fails the build if any version drifts or any internal link is broken. Do not commit with a failing self-check.
+   Before a release, also run `pwsh scripts/verify.ps1` in the sibling `spec-driven-develop` repository — its cross-repo checks verify the shared contract from both sides (escalation signals, delivery-batch write-back fingerprints, section citations). A wording change here can break the fingerprint there.
 3. **Keep the READMEs aligned.** `README.md` and `README.zh-CN.md` describe the same skill. If you change the structure, links, or section set in one, mirror it in the other. The self-check verifies links and versions in both; structural parity is a human review responsibility.
 4. **SKILL.md wins.** When `SKILL.md` and `references/implementation-guide.md` disagree, `SKILL.md` is authoritative — fix the guide, not the spec.
 
