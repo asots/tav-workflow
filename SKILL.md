@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.6.0
+version: 3.7.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -153,6 +153,7 @@ Actor executes the approved todo list. Do not perform unrelated refactors.
 3. Prefer editing existing files over creating new ones.
 4. Keep changes cohesive and small enough to avoid truncation.
 5. Update `completed_steps` after each meaningful chunk.
+6. For long task cards (5+ todo items or an expected diff beyond ~300 lines), checkpoint proactively: after every 3-4 completed todos, persist progress (`.tav/state.json` when in use, otherwise the native task tracker) and run the cheapest relevant gate (syntax or type check) on the touched files before continuing. Recovery from a mid-task interruption must never depend on conversation memory.
 
 ### Actor boundaries
 
@@ -337,7 +338,7 @@ When knowledge consolidation wrote to a memory or instruction surface, append th
 
 Report only measurable facts. File and line counts come from `git diff --stat`; never estimate token usage or wall-clock duration.
 
-In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires the write-back: progress update (Issue/checkbox + MASTER.md) plus post-task telemetry. The task is not complete until both are recorded. Knowledge consolidation, when it fires, routes through the governance surfaces resolved in MASTER.md.
+In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires the write-back: progress update (Issue telemetry + MASTER.md; closure happens via the delivery batch PR) plus post-task telemetry. The task is not complete until both are recorded. Knowledge consolidation, when it fires, routes through the governance surfaces resolved in MASTER.md.
 
 Archive or remove `.tav/state.json` only after completion and only if it belongs to the completed workflow. Do not delete VCS metadata under any circumstance.
 
@@ -393,7 +394,7 @@ Never reset a counter to avoid escalation. If the same root cause keeps surfacin
 
 ## Operating Inside a Spec-Driven Project
 
-When `docs/progress/MASTER.md` exists and the current task comes from a `spec-driven-develop` plan, one TAV cycle executes exactly one task card. This is the execution half of the Handoff Contract defined in `spec-driven-develop` § "Boundary with TAV" — keep both sides in sync.
+When `docs/progress/MASTER.md` exists and the current task comes from a `spec-driven-develop` plan, one TAV cycle executes exactly one task card, while the enclosing delivery batch owns branches, integration validation, and the single batch PR. This is the execution half of the Handoff Contract defined in `spec-driven-develop` § "Boundary with TAV" — keep both sides in sync.
 
 **Task intake (Thinker):**
 
@@ -404,7 +405,7 @@ When `docs/progress/MASTER.md` exists and the current task comes from a `spec-dr
 
 **Completion write-back (after Verifier passes):**
 
-- Close the Issue via PR (`closes #N`) or check the checkbox in the phase file, and update the "Current Status" section of MASTER.md.
+- Mark the task ready for batch integration — do not create a task-level PR or use closing keywords. The Issue closes through its delivery batch PR's `Closes #N` line (or the LOCAL_ONLY checkbox) after integrated validation passes. Update the "Current Status" section of MASTER.md.
 - Report post-task telemetry from observed TAV signals: effort level derived from rework iterations and Thinker returns, plus the count of files touched beyond the task card's "Affected Files" list. The scale and storage protocol live in `spec-driven-develop` `references/adaptive-control.md` § 1.
 - Route knowledge consolidation through the surfaces recorded under "Governance Status" in MASTER.md — durable facts to the resolved memory surface, agent-behavior rules to the resolved instruction surfaces. This fulfills the governance write-back that `spec-driven-develop` Phase 5b step 4 already requires and is mirrored in its Handoff Contract write-back table.
 - On `[PUA-REPORT]` or a blocked state, record it on the Issue or phase file before pausing — the spec-driven drift controller needs that signal.

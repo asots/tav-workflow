@@ -1,5 +1,16 @@
 # TAV Workflow Changelog
 
+## Version 3.7.0 (2026-07-23)
+
+### Delivery-batch alignment (behavior fix)
+
+- **Changed**: "Operating Inside a Spec-Driven Project" write-back now matches the `spec-driven-develop` delivery-batch protocol — a completed task is marked ready for batch integration; the Issue closes through the batch PR's `Closes #N` line (or the LOCAL_ONLY checkbox), never through a task-level PR or closing keyword.
+- **Changed**: The boundary statement names the enclosing delivery batch as owner of branches, integration validation, and the single batch PR; Phase 4's spec-driven write-back note updated to match.
+
+### Long-task checkpointing
+
+- **Added**: Actor checkpoint rule — long task cards (5+ todos or ~300+ line expected diffs) persist state and run the cheapest relevant gate every 3-4 completed todos, so mid-task recovery never depends on conversation memory.
+
 ## Version 3.6.0 (2026-07-06)
 
 ### Broader stack and config coverage
