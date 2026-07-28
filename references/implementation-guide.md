@@ -1,6 +1,6 @@
 # TAV Workflow Implementation Guide
 
-This guide covers operational details that go beyond the specification in `SKILL.md`. When this guide and `SKILL.md` disagree, `SKILL.md` wins. Command tables, output contracts, and the escalation format are defined there and are not repeated here.
+This guide covers operational details that go beyond the specification in `SKILL.md`. When this guide and `SKILL.md` disagree, `SKILL.md` wins. Command tables live in `references/verification-commands.md`; output contracts and the escalation format are defined in `SKILL.md` and are not repeated here.
 
 ## Operating Model
 
@@ -34,8 +34,8 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 
 - Update `current_phase`, `completed_steps`, and `last_update` at each phase transition.
 - For hard bugs, keep `diagnosis.feedback_command`, the compact baseline result/reproduction rate, ranked hypothesis summaries, and current probe lifecycle (`planned|applied|removed|not_applicable`) recoverable. For test-first work, keep the chosen `tdd.test_seam` plus compact RED/GREEN command evidence. For review, persist separate `review_axes.standards` and `review_axes.spec` statuses and evidence pointers.
-- Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `SKILL.md` § "Failure counting semantics" — two consecutive failures of the same key triggers `[PUA-REPORT]`.
-- `phase_outputs` holds status plus a short pointer/summary only (e.g. `thinker.status`, an evidence count) — the authoritative phase output is the templated block produced in the session, not a full copy in state. Never duplicate the whole Thinker/Actor/Verifier output into state; it drifts and wastes space.
+- Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `SKILL.md` § "Failure counting semantics" — two consecutive failures of the same key triggers `[ESCALATION-REPORT]`.
+- `phase_outputs` holds compact, recoverable state: the approved plan or next action, evidence pointers, and the verification plan/results needed to resume without chat history. Never duplicate the whole Thinker/Actor/Verifier report or full logs into state; they drift and waste space.
 
 ### Staleness and cleanup
 
@@ -92,7 +92,7 @@ Report only measurable facts:
 ### Verifier
 
 - Start from `git diff`, not from the Actor's summary.
-- Pick verification commands only after inspecting project files; the evidence-to-command table is in `SKILL.md` Phase 3.
+- Pick verification commands only after inspecting project files; the evidence-to-command table is in `references/verification-commands.md`.
 - Do not claim a check passed unless it ran and succeeded. Record unavailable commands under skipped checks.
 - Flag consolidation candidates while reviewing — rework lessons and non-obvious root causes surface here, not in Phase 4. Evaluation and capture happen in Phase 4 against the signals in `SKILL.md`.
 - Output contract: `references/templates/verifier-output.md`.
@@ -109,9 +109,9 @@ Report only measurable facts:
 
 The capture signals, never-capture list, and write-target resolution order are defined in `SKILL.md` Phase 4 and are not repeated here. This section covers the mechanics of writing a captured rule.
 
-### Project memory directory layout
+### Repo-local memory fallback layout
 
-The default write target is the project memory directory:
+Use this layout only when `docs/memory/` is the project's declared or explicitly selected memory surface:
 
 ```text
 docs/memory/
@@ -149,7 +149,7 @@ applies_to: ["src/dashboard/**", "src/api/user.ts"]
 
 - Capturing to prove the workflow ran — zero captures is the normal outcome.
 - Long prose entries; if a rule needs more than ~2 lines, it is probably session context, not durable knowledge.
-- Creating ad-hoc capture files (`LEARNINGS.md`, `NOTES.md`) outside the memory directory — the workflow-defined `docs/memory/` layout is the only sanctioned new-file target; anything unresolvable goes into the final report instead.
+- Creating ad-hoc capture files (`LEARNINGS.md`, `NOTES.md`) outside the resolved memory surface. If no existing or explicitly selected surface accepts the rule, list the candidate in the final report instead.
 - Restating what a linter, type-checker, or the language itself already enforces.
 
 ## Native Task Tracking

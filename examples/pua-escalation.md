@@ -1,6 +1,6 @@
 # Example: PUA Escalation After Two Consecutive Failures
 
-Demonstrates the two-strike `[PUA-REPORT]` rule. The Actor attempts the same fix twice; the Verifier fails on the same blocker key both times. The second consecutive failure emits a `[PUA-REPORT]` and escalates verification independence — the agent that wrote the fix twice is the least likely to see what is still wrong with it.
+Demonstrates the two-strike `[ESCALATION-REPORT]` rule. The Actor attempts the same fix twice; the Verifier fails on the same blocker key both times. The second consecutive failure emits an `[ESCALATION-REPORT]` and escalates verification independence — the agent that wrote the fix twice is the least likely to see what is still wrong with it.
 
 ## User Request
 
@@ -44,12 +44,12 @@ const name = getUser(1)!.name;
 - `git diff`: non-null assertion added at `src/dashboard.ts:8`.
 - `pnpm typecheck`: **FAIL** - same `TS2532` family, now on `src/dashboard.ts:12` where `getUser(1).email` is used. The assertion suppressed one site but the underlying null-handling is still missing.
 - Blocker key `pnpm typecheck:TS2532` is now **2 consecutive** failures. Because the key was normalized (location stripped) from the first failure, the new location (line 12 instead of line 8) still hits the same key — no after-the-fact widening needed.
-- Second consecutive failure of the same key -> emit `[PUA-REPORT]` and escalate.
+- Second consecutive failure of the same key -> emit `[ESCALATION-REPORT]` and escalate.
 
-## [PUA-REPORT]
+## [ESCALATION-REPORT]
 
 ```text
-[PUA-REPORT]
+[ESCALATION-REPORT]
 - 触发节点：Verifier / Phase 3 (iteration 2)
 - 失败次数：2 (consecutive, key=pnpm typecheck:TS2532)
 - 核心瓶颈：Suppressing null with `!` at individual call sites does not fix the null-safety defect; TS2532 keeps surfacing at new sites.
@@ -59,7 +59,7 @@ const name = getUser(1)!.name;
 
 ## Escalation
 
-The `[PUA-REPORT]` triggers two things:
+The `[ESCALATION-REPORT]` triggers two things:
 
 1. **Verification independence**: the Verifier is promoted to an independent reviewer agent (not the agent that wrote both fixes). Per the risk-level dynamics, two rework iterations on a null-safety surface escalate risk to **high**.
 2. **Thinker re-diagnosis**: the plan is incomplete — "handle null at the call site" was under-specified. The Thinker revises the todo list, which **resets** the `failure_counts` entry for the superseded todos (the blocker key is no longer valid).
@@ -95,11 +95,11 @@ Actor applies the single guard. The independent Verifier reviews the `git diff`,
 - Audit remaining `getUser` call sites for the same null-handling gap.
 
 ## Knowledge Consolidation
-- `docs/memory/null-guard-at-source.md` (Added) - Widen nullable return types and guard once at the call site; do not suppress null with `!` per access — it only relocates the TS2532. Capture signal: same blocker failed twice.
+- Candidate for the resolved memory surface (write only when it is declared or explicitly selected): widen nullable return types and guard once at the call site; do not suppress null with `!` per access — it only relocates TS2532. Capture signal: same blocker failed twice.
 ```
 
 ## Key Takeaways
 
-1. **Two strikes, not three.** The second consecutive failure of the same blocker key emits `[PUA-REPORT]` immediately.
+1. **Two strikes, not three.** The second consecutive failure of the same blocker key emits `[ESCALATION-REPORT]` immediately.
 2. **Escalation is structural, not just a report.** Verification independence is promoted and the Thinker re-plans; the counter resets because the old blocker key is no longer valid.
 3. **Suppressing symptoms fails twice.** Both Actor attempts patched one type error instead of adding the missing guard — the classic pattern the two-strike rule exists to catch.

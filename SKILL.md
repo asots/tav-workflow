@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.8.0
+version: 3.9.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -106,13 +106,14 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 3. Diagnose the root cause or implementation target.
 4. Produce atomic todo items with file-level or symbol-level specificity.
 5. Select verification commands based on the project stack.
-6. Ask at most one focused clarification question if requirements are ambiguous.
+6. Ask at most one focused clarification question if requirements are ambiguous. When the ambiguity is structural — competing interpretations that would change the todo list — run a grilling interview instead: one question at a time, each led by a recommended answer, until the plan-changing decisions are resolved. Use the `grilling` skill when the platform provides it; do not act on the plan until shared understanding is confirmed.
 
 ### Evidence rules
 
 - Every conclusion must cite file paths, symbols, line ranges, logs, or command output.
 - Prefer targeted reads and searches over broad file dumps.
 - If the project has a memory index (`docs/memory/MEMORY.md`), read **only the index lines** (one hook per entry) and shortlist entries whose hook mentions the task's files, modules, or topic. Open only the shortlisted entry files, then use their `applies_to`/`tags` frontmatter to confirm relevance and discard mismatches — previously captured knowledge is first-class evidence, but loading every entry wastes context. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
+- If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution and decision recording route through the `domain-modeling` skill when available (write targets in Phase 4).
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
 - Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
@@ -139,6 +140,12 @@ This micro-loop preserves the Thinker read-only boundary when diagnosis needs te
 The diagnostic Actor does not implement the fix or retain a regression test. Persistent tests and product changes belong to the normal Actor after the Thinker plan is complete. If baseline restoration cannot be proven, stop and report the residual diagnostic delta without touching pre-existing user changes.
 
 If no usable feedback loop can be built, stop speculative diagnosis. Report the attempts and exact limitation, then request the missing environment access, captured artifact, or permission for temporary instrumentation.
+
+### Design-prototype branch
+
+Use this branch when a plan decision hinges on how a state model, interaction, or interface should behave and repository evidence cannot settle it — the question is "does this design feel right?", not "why does this fail?". Build a throwaway prototype that answers that single question: an interactive terminal harness for state/logic questions, or switchable UI variations for interface questions. Use the `prototype` skill when the platform provides it.
+
+The prototype follows the diagnostic-probe discipline: explicitly marked as throwaway, no tests or polish, never part of the final diff, and removed once the question is answered (retain it only on explicit user request, outside the delivered change). Record the question, the run command, and the validated decision in the Thinker output; only the decision enters the todo list, and the Verifier confirms no prototype code remains in the delivered change.
 
 ### Required Thinker output
 
@@ -241,42 +248,11 @@ Verifier checks the change independently. Do not rely on Actor's summary.
 8. Record pass/fail results in native task tracking (and `.tav/state.json` if it exists).
 9. Flag knowledge consolidation candidates observed during review — rework lessons, non-obvious root causes, undocumented project commands — for evaluation in Phase 4.
 
-### Stack-aware verification command selection
+### Verification command selection
 
-Use evidence from project files before choosing commands.
-
-| Evidence | Typical commands |
-|----------|------------------|
-| `package.json` + `pnpm-lock.yaml` | `pnpm lint`, `pnpm typecheck`, `pnpm test` if scripts exist |
-| `package.json` + `package-lock.json` | `npm run lint`, `npm run typecheck`, `npm test` if scripts exist |
-| `package.json` + `yarn.lock` | `yarn lint`, `yarn typecheck`, `yarn test` if scripts exist |
-| `pyproject.toml` | `ruff check .`, `mypy .`, `pytest` when configured |
-| `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
-| `go.mod` | `go test ./...`, `go vet ./...` when applicable |
-| `pom.xml` / `build.gradle` | `mvn -q test`, `./gradlew test`; `mvn checkstyle:check` or `./gradlew check` when configured |
-| `*.csproj` / `*.sln` | `dotnet build`, `dotnet test`; `dotnet format --verify-no-changes` when available |
-| `Gemfile` / `*.rb` | `bundle exec rake test` or `bundle exec rspec`; `rubocop` when configured |
-| `composer.json` | `composer test` or `vendor/bin/phpunit`; `php-cs-fixer` or `composer lint` when configured |
-| `CMakeLists.txt` (C/C++) | `cmake --build build && ctest --test-dir build`; infer sanitizer/clang-tidy from config |
-| `pubspec.yaml` (Dart/Flutter) | `flutter analyze`, `flutter test` |
-| Other stacks | Infer from CI config (`.github/workflows`, `.gitlab-ci.yml`), README, Makefile, or project scripts; never invent commands |
+Use project evidence before choosing commands. Read `references/verification-commands.md` when selecting application-stack or configuration/IaC gates; it contains the evidence-to-command table and external-state safety limits.
 
 If no reliable command exists, state that explicitly under failed or unexecuted commands. Never claim verification passed without running or justifying the gate.
-
-### Configuration and IaC verification
-
-When the change touches configuration or infrastructure-as-code rather than application source, the `git diff` review still comes first, but the gate commands differ:
-
-| Evidence | Typical commands |
-|----------|------------------|
-| `.github/workflows/*.yml` | `actionlint` if available; otherwise re-read the workflow YAML for syntax and secret references |
-| `Dockerfile` / `docker-compose.yml` | `docker build` (and `docker compose config` to validate the compose file) |
-| `*.tf` / `*.tofu` | `terraform fmt -check`, `terraform validate`; `terraform plan` only in a prepared environment, never commit state |
-| `Chart.yaml` / `values.yaml` | `helm lint`, `helm template` to render and catch template errors |
-| `*.yml`/`*.yaml` (generic) | A YAML/schema linter (`yamllint`, `prettier --check`) when configured |
-| K8s manifests | `kubectl apply --dry-run=server -f` (requires cluster context) or `kubeval`/`kubeconform` offline |
-
-Never run `terraform apply` or `kubectl apply` as a verification step during a TAV cycle — those mutate external state. Validation and planning only; record the command as skipped if no safe variant exists.
 
 ### Two-axis review
 
@@ -340,7 +316,7 @@ Capture only when at least one signal holds:
 - The root cause was non-obvious (the surface symptom pointed elsewhere) and the pattern will recur.
 - A project-specific command, script, or environment requirement was discovered that is recorded nowhere in the repo.
 - A dependency, version, or platform gotcha cost a rework iteration.
-- The same gate failed twice before the real fix was found — the lesson behind a `[PUA-REPORT]`.
+- The same gate failed twice before the real fix was found — the lesson behind an `[ESCALATION-REPORT]`.
 - The user corrected the approach mid-task, expressing a durable preference or constraint.
 - A recalled memory entry proved stale or wrong during this cycle — updating or deleting it is a capture action and follows the same reporting rule.
 
@@ -350,28 +326,19 @@ Never capture:
 - Facts derivable by reading the code.
 - Session-only context (this cycle's todo list, temporary decisions).
 
-Write target — route by the nature of the knowledge, not by surface availability:
+Write target — resolve the memory surface before choosing a file:
 
-1. **Project memory directory** (`docs/memory/`) — the default for project engineering knowledge: root-cause patterns, commands, gotchas, invariants. One entry per file plus a `MEMORY.md` index line; committed with the repo so the knowledge is versioned, reviewable, and shared. Creating this directory on first capture is part of this workflow, not a new-truth-source violation.
-2. **An existing instruction surface** (`CLAUDE.md`, `AGENTS.md`, or an existing platform rule file) — high-bar exception, only for a rule that must be unconditionally present in every session (a hard behavioral constraint). Add at most one line; link to the memory entry for detail.
-3. **The platform's native project memory** — personal or machine-specific facts that do not belong in the repo (local paths, personal workflow).
-4. **In a spec-driven project** — follow the surfaces already recorded under "Governance Status" in `docs/progress/MASTER.md`; once the project memory directory is registered there, it is the preferred memory surface.
+1. **Existing governance or declared project memory surface** — in a spec-driven project, `docs/progress/MASTER.md` "Governance Status" wins; otherwise use the project's already declared memory surface. Do not create a competing source.
+2. **The platform's native project memory** — the default when no existing project declaration takes precedence and native memory is available.
+3. **A repo-local fallback** (`docs/memory/`) — only when the project already declares it or the user explicitly selects it. When selected, use one entry per file plus a `MEMORY.md` index line; commit it with the repository.
+4. **Domain surfaces** (`CONTEXT.md` glossary; the project's ADR directory) — confirmed canonical terms go to the glossary, and decisions that are costly to reverse, surprising without context, and the result of a genuine trade-off go to an ADR. Route these through the `domain-modeling` skill when available; do not duplicate them into general memory.
+5. **An existing instruction surface** (`CLAUDE.md`, `AGENTS.md`, or an existing platform rule file) — high-bar exception, only for a rule that must be unconditionally present in every session. Add at most one line; link to the resolved memory surface for detail.
 
-If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the memory directory. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
+If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the resolved memory surface. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
 
 ### Final report
 
-Use this final format when files were modified. Render section headings in the user's working language. The Chinese headings below are the reference layout; for English sessions use this mapping:
-
-| Chinese (reference) | English |
-|--------------------|---------|
-| 变更摘要 | Summary |
-| 涉及文件 | Files Changed |
-| 验证结果 | Verification |
-| 失败或未执行的命令 | Failed or Skipped Commands |
-| 剩余风险 | Residual Risks |
-| 后续建议 | Next Steps |
-| 知识沉淀 | Knowledge Consolidation |
+Use this final format when files were modified. Render all headings in the user's working language; the Chinese headings below are the reference layout.
 
 ```markdown
 ## 变更摘要
@@ -402,7 +369,7 @@ When knowledge consolidation wrote to a memory or instruction surface, append th
 
 Report only measurable facts. File and line counts come from `git diff --stat`; never estimate token usage or wall-clock duration.
 
-In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires the write-back: progress update (Issue telemetry + MASTER.md; closure happens via the delivery batch PR) plus post-task telemetry. The task is not complete until both are recorded. Knowledge consolidation, when it fires, routes through the governance surfaces resolved in MASTER.md.
+In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires a handoff. In orchestrator-direct execution, the orchestrator records authorized project-level progress and execution events; in a lane or delegated assignment, return the write-back payload and do not mark the project task complete yourself. Knowledge consolidation, when it fires, is returned as a candidate and routes through the governance surfaces resolved in MASTER.md.
 
 Archive or remove `.tav/state.json` only after completion and only if it belongs to the completed workflow. Do not delete VCS metadata under any circumstance.
 
@@ -415,7 +382,7 @@ Archive or remove `.tav/state.json` only after completion and only if it belongs
 | Ambiguous requirement | Thinker | Ask one focused question, then update plan |
 | Incomplete plan | Actor | Stop and return to Thinker with evidence |
 | Quality gate failure | Verifier | Return to Actor with exact command output |
-| Same blocker fails twice | Any phase | Emit `[PUA-REPORT]` and escalate |
+| Same blocker fails twice | Any phase | Emit `[ESCALATION-REPORT]` and escalate |
 | Critical security issue | Verifier | Block completion and request explicit user decision |
 | Token/context pressure | Any phase | Save state, summarize progress, pause |
 
@@ -438,20 +405,20 @@ The "same blocker fails twice" rule needs a stable key so the count is meaningfu
 
 - **Blocker key** = `todo_id` (or the verification command string when the failure is a gate command) + a normalized error signature. Normalize by keeping the stable part (error type/code, failing rule or test name) and stripping volatile parts (line numbers, file offsets, timestamps, memory addresses) — `TS2532`, not `TS2532-dashboard.ts:8`. Record the normalized key from the first failure; never widen a key after the fact to make two failures match. Store it under `failure_counts.by_blocker` for plan/structural failures and `failure_counts.by_command` for gate-command failures.
 - **Consecutive**: only consecutive failures of the *same* key count. A success or a Thinker re-plan resets the counter for that key.
-- **Two-strike trigger**: the second consecutive failure of the same key emits `[PUA-REPORT]`. A third is not required — escalate on two.
+- **Two-strike trigger**: the second consecutive failure of the same key emits `[ESCALATION-REPORT]`. A third is not required — escalate on two.
 - **Re-plan resets**: when the Thinker revises the todo list after a return, all `failure_counts` entries for the superseded todos are cleared, because the blocker key is no longer valid.
 
 Never reset a counter to avoid escalation. If the same root cause keeps surfacing under different keys, treat that as a Thinker signal that the diagnosis is wrong.
 
-### PUA escalation format
+### Escalation report format
 
 ```text
-[PUA-REPORT]
+[ESCALATION-REPORT]
 - 触发节点：[Agent Name / Current Phase Name]
 - 失败次数：[Exact consecutive failure count]
 - 核心瓶颈：[Precise technical blocker]
 - 异常上下文：[Terminal traces, exception stack, or error block]
-- 惩罚性反思：[Logic correction and next safe action]
+- 纠正性复盘：[Logic correction and next safe action]
 ```
 
 ---
@@ -469,10 +436,10 @@ When `docs/progress/MASTER.md` exists and the current task comes from a `spec-dr
 
 **Completion write-back (after Verifier passes):**
 
-- Mark the task ready for batch integration — do not create a task-level PR or use closing keywords. The Issue closes through its delivery batch PR's `Closes #N` line (or the LOCAL_ONLY checkbox) after integrated validation passes. Update the "Current Status" section of MASTER.md.
-- Report post-task telemetry from observed TAV signals: effort level derived from rework iterations and Thinker returns, plus the count of files touched beyond the task card's "Affected Files" list. The scale and storage protocol live in `spec-driven-develop` `references/adaptive-control.md` § 1.
-- Route knowledge consolidation through the surfaces recorded under "Governance Status" in MASTER.md — durable facts to the resolved memory surface, agent-behavior rules to the resolved instruction surfaces. This fulfills the governance write-back that `spec-driven-develop` Phase 5b step 4 already requires and is mirrored in its Handoff Contract write-back table.
-- On `[PUA-REPORT]` or a blocked state, record it on the Issue or phase file before pausing — the spec-driven drift controller needs that signal.
+- Return `ready for batch integration` — do not create a task-level PR or use closing keywords. In orchestrator-direct execution, the orchestrator updates the Current Status and, after integrated validation plus the required authorization, performs closure through the batch PR's `Closes #N` line (or the LOCAL_ONLY checkbox). In a lane or delegated assignment, do not edit `MASTER.md`, an Issue, or a phase file.
+- Return one execution-event payload from observed TAV signals: outcome, rework iterations, Thinker returns, files touched beyond the task card's "Affected Files" list, and the focused result for its declared S.U.P.E.R drivers. Only the orchestrator records it once according to `spec-driven-develop` `references/adaptive-control.md`.
+- Return knowledge-consolidation candidates for the orchestrator to reconcile against "Governance Status" in MASTER.md. A lane or delegated TAV cycle never writes resolved memory or instruction surfaces directly.
+- On `[ESCALATION-REPORT]` or a blocked state, return the event before pausing. Only the orchestrator records it in an authorized Issue comment or phase file and selects watch, replan, or rescope.
 
 **State ownership:**
 
@@ -504,6 +471,7 @@ Read these on demand, not upfront:
 - `references/templates/state.json` - read before creating `.tav/state.json` for the first time.
 - `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - read before producing a phase output when the inline format above is not detailed enough.
 - `references/implementation-guide.md` - operational details: state lifecycle, native task tracking, metrics rules, knowledge consolidation mechanics, safety notes.
+- `references/verification-commands.md` - evidence-to-command selection for application stacks and configuration/IaC.
 - `examples/bug-fix.md` - two-iteration loop where Verifier catches an incomplete fix.
 - `examples/rate-limiting.md` - full L1 walkthrough including state file evolution.
 - `examples/refactoring.md` - behavior-preserving extraction with plan-mismatch recovery.

@@ -1,5 +1,21 @@
 # TAV Workflow Changelog
 
+## Version 3.9.0 (2026-07-28)
+
+### Alignment, domain-language, and prototype hooks
+
+- **Added**: Thinker structural-ambiguity escalation — when competing interpretations would change the todo list, run a grilling interview (one question at a time, each led by a recommended answer) instead of a single clarification question; uses the `grilling` skill when the platform provides it.
+- **Added**: Domain-glossary evidence rule — Thinker reads `CONTEXT.md` (or `CONTEXT-MAP.md` per-context glossaries) when present, plans in canonical terms, and surfaces user/glossary/code contradictions instead of silently picking a side.
+- **Added**: Design-prototype branch in Thinker — a throwaway prototype answers a single "does this design feel right?" question under diagnostic-probe discipline (marked disposable, outside the final diff, removed after the answer); uses the `prototype` skill when available.
+- **Added**: Domain surfaces as a knowledge-consolidation write target — confirmed canonical terms route to the `CONTEXT.md` glossary and qualifying decisions (costly to reverse, surprising without context, genuine trade-off) to the ADR directory via the `domain-modeling` skill; never duplicated into the memory directory.
+- All three hooks are soft dependencies adapted from `mattpocock/skills`: each names the preferred skill and keeps an inline fallback when it is not installed.
+
+### Workflow-surface consolidation
+
+- **Changed**: Knowledge consolidation now resolves the shared memory-surface order first: an existing declaration, native project memory, then a repo-local `docs/memory/` fallback only when declared or explicitly selected. The fallback is never created by default.
+- **Changed**: The application and IaC verification-command map moved out of the hot-path `SKILL.md` into `references/verification-commands.md`; the documentation self-check now verifies that reference.
+- **Changed**: Spec-driven task completion writes one execution event to the authoritative task record while `MASTER.md` remains a lightweight phase or batch mirror; it no longer requires effort-level or drift-state storage.
+
 ## Version 3.8.0 (2026-07-28)
 
 ### Specialist engineering disciplines
@@ -34,7 +50,7 @@
 
 - **Added**: L0 vs L1 boundary — explicit triggers (security surface, cross-file effect, new test needed, ~30-line/2-file threshold) so tier choice is about risk, not file count.
 - **Added**: Risk level dynamics — low/medium/high/critical triggers and the escalate-never-silently-downgrade rule; high/critical promotes the Verifier to an independent reviewer agent.
-- **Added**: Failure counting semantics — the blocker key (`todo_id`/command + normalized error signature, volatile parts like line numbers stripped), consecutiveness, two-strike trigger, and re-plan reset rule that govern `[PUA-REPORT]`. Key format is defined once in `SKILL.md`; the `state.json` template keeps `failure_counts` as empty maps.
+- **Added**: Failure counting semantics — the blocker key (`todo_id`/command + normalized error signature, volatile parts like line numbers stripped), consecutiveness, two-strike trigger, and re-plan reset rule that govern `[ESCALATION-REPORT]`. Key format is defined once in `SKILL.md`; the `state.json` template keeps `failure_counts` as empty maps.
 
 ### Knowledge and state hygiene
 
@@ -47,7 +63,7 @@
 - **Added**: Final-report heading mapping between the Chinese reference layout and English.
 - **Added**: `.gitignore` (ignore `.tav/` and machine-specific `.claude/settings.local.json`).
 - **Added**: `CONTRIBUTING.md` and `scripts/verify.ps1` — documentation self-check for version consistency (single source = `SKILL.md` frontmatter) and internal link integrity.
-- **Added**: `examples/l0-quick-patch.md` (L0 lightweight single-pass flow) and `examples/pua-escalation.md` (two-strike `[PUA-REPORT]` with independence escalation).
+- **Added**: `examples/l0-quick-patch.md` (L0 lightweight single-pass flow) and `examples/pua-escalation.md` (two-strike `[ESCALATION-REPORT]` with independence escalation).
 
 ## Version 3.5.0 (2026-07-06)
 
@@ -141,7 +157,7 @@
 - **Added**: Actor read-boundary clarification: Actor may read target context required for editing but must not perform new exploration.
 - **Added**: Stack-aware verification command selection for Node, Python, Rust, and Go projects.
 - **Added**: Security-sensitive verification branch for auth, user input, database, filesystem, external API, crypto, payments, and secrets.
-- **Added**: Two-failure `[PUA-REPORT]` escalation protocol.
+- **Added**: Two-failure `[ESCALATION-REPORT]` escalation protocol.
 
 ### Documentation Improvements
 

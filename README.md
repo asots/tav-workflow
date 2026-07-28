@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.8.0
+**Version**: 3.9.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -57,10 +57,10 @@ TAV workflow:
 - **Two-axis review**: after machine gates, Verifier reports repository Standards and task Spec findings separately so correctness on one axis cannot hide failure on the other.
 - **State persistence**: `.tav/state.json` enables resuming interrupted L1 work; states older than 7 days are treated as stale. See [SKILL.md](SKILL.md) Phase 0 for the schema and [references/templates/state.json](references/templates/state.json) for the full template.
 - **Native task tracking**: progress maps to the platform's real task tools (in Claude Code: `TaskCreate` / `TaskUpdate`).
-- **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [SKILL.md](SKILL.md) Phase 3.
-- **Error recovery**: plan mismatches return to Thinker, gate failures return to Actor, the same blocker failing twice triggers `[PUA-REPORT]` escalation, and critical security issues block completion.
-- **Knowledge consolidation**: after gates pass, durable lessons (non-obvious root causes, undocumented commands, dependency gotchas) are captured into the project's `docs/memory/` directory — at most 1-3 rules per cycle, indexed, recalled, and re-validated by the next Thinker pass. See [SKILL.md](SKILL.md) Phase 4.
-- **Spec-driven interop**: inside a `spec-driven-develop` project, one TAV cycle executes one task card and writes back progress plus telemetry. See [SKILL.md](SKILL.md) "Operating Inside a Spec-Driven Project".
+- **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [Verification Command Selection](references/verification-commands.md).
+- **Error recovery**: plan mismatches return to Thinker, gate failures return to Actor, the same blocker failing twice triggers `[ESCALATION-REPORT]` escalation, and critical security issues block completion.
+- **Knowledge consolidation**: after gates pass, durable lessons use the project's resolved memory surface: an existing declaration first, then native project memory, then `docs/memory/` only when it is already declared or explicitly selected. See [SKILL.md](SKILL.md) Phase 4.
+- **Spec-driven interop**: inside a `spec-driven-develop` project, one TAV cycle executes one task card and returns progress plus one execution-event payload to the orchestrator. See [SKILL.md](SKILL.md) "Operating Inside a Spec-Driven Project".
 
 ## Architecture
 
@@ -94,7 +94,7 @@ Recommended `.gitignore` entry:
 .tav/
 ```
 
-Note: the knowledge-consolidation directory `docs/memory/` must be committed with the repo — do **not** add it to `.gitignore`.
+If `docs/memory/` is selected as the repository's memory surface, commit it with the repo — do **not** add it to `.gitignore`.
 
 ## Examples
 
@@ -102,13 +102,14 @@ Note: the knowledge-consolidation directory `docs/memory/` must be committed wit
 - [examples/rate-limiting.md](examples/rate-limiting.md) - full L1 walkthrough including state file evolution.
 - [examples/refactoring.md](examples/refactoring.md) - behavior-preserving extraction with plan-mismatch recovery.
 - [examples/l0-quick-patch.md](examples/l0-quick-patch.md) - L0 lightweight single-pass flow with no state file.
-- [examples/pua-escalation.md](examples/pua-escalation.md) - two-strike [PUA-REPORT] with Verifier independence escalation.
+- [examples/pua-escalation.md](examples/pua-escalation.md) - two-strike [ESCALATION-REPORT] with Verifier independence escalation.
 
 ## Documentation
 
 - [SKILL.md](SKILL.md) - complete skill specification (single source of truth).
 - [CHANGELOG.md](CHANGELOG.md) - version history.
 - [Implementation Guide](references/implementation-guide.md) - operational guidance.
+- [Verification Command Selection](references/verification-commands.md) - stack and IaC gate selection.
 - [State Template](references/templates/state.json) - durable state schema.
 - [Thinker Output](references/templates/thinker-output.md) / [Actor Output](references/templates/actor-output.md) / [Verifier Output](references/templates/verifier-output.md) - phase output formats.
 - [CONTRIBUTING.md](CONTRIBUTING.md) - how to edit this skill and run the documentation self-check.
@@ -119,5 +120,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.8.0**
+**TAV Workflow v3.9.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

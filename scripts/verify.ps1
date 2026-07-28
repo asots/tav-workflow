@@ -69,7 +69,7 @@ foreach ($r in 'README.md','README.zh-CN.md') {
 
 # 4. Files referenced from SKILL.md exist
 $failsBefore = $script:fail
-foreach ($req in 'references/templates/state.json','references/templates/thinker-output.md','references/templates/actor-output.md','references/templates/verifier-output.md','references/implementation-guide.md','CHANGELOG.md') {
+foreach ($req in 'references/templates/state.json','references/templates/thinker-output.md','references/templates/actor-output.md','references/templates/verifier-output.md','references/implementation-guide.md','references/verification-commands.md','CHANGELOG.md') {
   if (-not (Test-Path $req)) { Fail "missing referenced file: $req" }
 }
 if ($script:fail -eq $failsBefore) { Ok "referenced files exist" }
@@ -110,8 +110,15 @@ if ($null -ne $state) {
   }
   if ($missingStateFields.Count -gt 0) { Fail "state template missing recovery fields: $($missingStateFields -join ', ')" }
   elseif ($null -eq $state.review_axes.standards -or $null -eq $state.review_axes.spec) { Fail 'state template does not keep Standards and Spec review axes separate' }
-  else { Ok 'state template carries diagnosis, TDD, and separate review-axis recovery fields' }
+  elseif ($null -eq $state.phase_outputs.thinker.approved_plan -or $null -eq $state.phase_outputs.thinker.evidence_pointers -or $null -eq $state.phase_outputs.thinker.verification_plan -or $null -eq $state.phase_outputs.verifier.results) { Fail 'state template lacks compact recoverable plan, evidence, or verification fields' }
+  else { Ok 'state template carries diagnosis, TDD, two-axis review, and compact resumable phase state' }
 }
+
+$eventTexts = @('SKILL.md','README.md','README.zh-CN.md','references/implementation-guide.md','examples/pua-escalation.md') | ForEach-Object { Get-Content $_ -Raw -Encoding UTF8 }
+$eventText = $eventTexts -join "`n"
+if ($eventText.Contains('[PUA-REPORT]')) { Fail 'current workflow surfaces still use the obsolete [PUA-REPORT] tag' }
+elseif (-not $eventText.Contains('[ESCALATION-REPORT]')) { Fail 'current workflow surfaces do not define the [ESCALATION-REPORT] tag' }
+else { Ok 'current workflow surfaces use the neutral escalation-event tag' }
 
 if ($script:fail -gt 0) { Write-Host "`n$($script:fail) check(s) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host "`nAll checks passed" -ForegroundColor Green; exit 0
