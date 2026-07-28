@@ -23,7 +23,7 @@ Phase 1 -> Analyzing
 - `tests/services/orderService.test.ts:89-234` - integration tests cover success, payment failure, and inventory shortage; they are the behavior baseline.
 
 ### Analysis Summary
-- Extract each responsibility into a private function of 20-30 lines; `processOrder` becomes a 25-line orchestrator with the same signature, so no call site changes. Integration tests must pass unchanged to prove behavior is preserved.
+- Extract each responsibility into a private function of 20-30 lines; `processOrder` becomes a 25-line orchestrator with the same signature, so no call site changes. Existing integration tests remain the behavior contract; do not add tests that bind to private extraction details.
 
 ### Todo List
 1. `src/services/orderService.ts` - extract `validateOrder` (lines 45-70).
@@ -34,7 +34,10 @@ Phase 1 -> Analyzing
 6. `src/services/orderService.ts` - extract `sendNotifications` (171-195).
 7. `src/services/orderService.ts` - extract `createAuditLog` (196-220).
 8. `src/services/orderService.ts` - rewrite `processOrder` as orchestrator; keep signature and error handling identical.
-9. `tests/services/orderService.unit.test.ts` - add unit tests per extracted function.
+9. `tests/services/orderService.test.ts` - add only public-behavior regression cases that the existing integration seam does not cover.
+
+### Long-Task Checkpoint
+- Before todo 5, persist a checkpoint: completed todos, unchanged public signature, commands run so far, and the remaining todo IDs. Resume only after re-reading the checkpoint and `git diff`.
 
 ### Risks
 - Any logic drift during extraction changes order processing behavior.
@@ -42,7 +45,7 @@ Phase 1 -> Analyzing
 - Existing integration tests are the contract; they must pass without modification.
 
 ### Verification Plan
-- `npm test -- orderService` - integration (unchanged) + new unit tests.
+- `npm test -- orderService` - unchanged integration contract plus public-behavior regression cases.
 - `npm run typecheck`, `npm run lint`.
 ```
 
@@ -53,15 +56,25 @@ Phase 1 -> Analyzing
 Phase 2 -> Executing
 
 ### Progress
-1. Completed todo 1-7 - seven functions extracted, logic moved verbatim.
-2. Completed todo 8 - processOrder rewritten as orchestrator, same signature.
-3. Completed todo 9 - 21 unit tests added.
+1. Completed todos 1-4, then wrote the planned checkpoint with `git diff` summary and remaining todo IDs 5-9.
+2. Completed todos 5-8 - seven functions extracted and `processOrder` rewritten as an unchanged-signature orchestrator.
+3. Completed todo 9 - added 3 public-behavior regression cases at the integration seam.
+
+### Completed Steps
+- Todo 1-4 checkpoint: extraction order, public signature, and error boundary remained unchanged.
+- Todo 5-9: completed after resuming from the checkpoint and re-reading the diff.
+
+### Diagnostic Probe Evidence
+- Not applicable.
+
+### TDD Evidence
+- Not applicable: behavior-preserving refactor; existing integration tests are the approved public seam.
 
 ### Blocked Items
 - None.
 
-### Next Phase
-- Enter Verifier.
+### Notes
+- No deviation from the Thinker plan.
 ```
 
 The orchestrator after extraction:
@@ -95,7 +108,7 @@ async function processOrder(orderId: string) {
 Phase 3 -> Reviewing
 
 ### Diff Reviewed
-- `git diff` shows changes confined to `orderService.ts` and the new unit test file; extracted bodies match the original line ranges; error handling and `order.save()` placement unchanged.
+- `git diff` shows changes confined to `orderService.ts` and its integration test file; extracted bodies match the original line ranges; error handling and `order.save()` placement unchanged.
 
 ### Verification Items
 
@@ -103,16 +116,30 @@ Phase 3 -> Reviewing
 |-------|--------|----------|
 | Requirement met | pass | 1 function -> 8 focused functions |
 | Syntax/type safety | pass | `npm run typecheck` clean |
-| Tests/lint | pass | integration 3/3 unchanged and green; unit 21/21 |
+| Tests/lint | pass | integration 3/3 unchanged and green; 3 additive public-behavior regression cases pass |
 | Compatibility | pass | signature identical; grep confirms all 4 production call sites compile untouched |
 | Edge cases | pass | payment-failure and inventory-shortage integration tests still pass |
-| Security | pass | no auth/input surface changed |
+| Security | pass | payment and inventory side effects remain in the original order; no credentials, amounts, authorization checks, or external API parameters changed |
 | Side effects | warn | `processPayment` propagates raw Stripe errors; wrapping would be clearer (optional) |
+
+### Standards Review
+- Status: pass
+- Repository-rule evidence: the diff remains within the approved service and integration-test files; lint and typecheck pass.
+
+### Spec Review
+- Status: pass
+- Acceptance evidence: public signature, error boundary, persistence order, and pre-existing integration behavior remain unchanged.
+
+### Hard-Bug Closure
+- Not applicable.
 
 ### Commands Run
 - `npm test -- orderService` - passed (24 tests).
 - `npm run typecheck` - passed.
 - `npm run lint` - passed.
+
+### Failed or Skipped Commands
+- None.
 
 ### Issue Details
 - None blocking.
@@ -140,7 +167,7 @@ Phase 3 -> Reviewing
 
 ## 涉及文件
 - `src/services/orderService.ts` (Modified): 提取 7 个函数并重写编排器。
-- `tests/services/orderService.unit.test.ts` (Added): 21 个单元测试。
+- `tests/services/orderService.test.ts` (Modified): 在现有集成测试接缝增加 3 个公开行为回归用例。
 
 ## 验证结果
 - ✅ `npm test -- orderService` passed (24 passing, 集成测试未修改)

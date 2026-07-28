@@ -30,7 +30,7 @@ Phase 1 -> Analyzing
 - `src/middleware/` - middleware directory exists with established patterns.
 
 ### Analysis Summary
-- Add `express-rate-limit` with a Redis store so limits hold across instances. Apply only to the login route. Thresholds: 5 attempts per 15 minutes per IP (check latest package versions on the registry before pinning).
+- User-approved availability policy: fail closed. If Redis is unavailable, login returns 500 rather than silently allowing unbounded authentication attempts. Add `express-rate-limit` with a Redis store so limits hold across instances. Apply only to the login route. Thresholds: 5 attempts per 15 minutes per IP (check latest package versions on the registry before pinning).
 
 ### Todo List
 1. `package.json` - add `express-rate-limit` and `rate-limit-redis` (versions from registry).
@@ -39,7 +39,7 @@ Phase 1 -> Analyzing
 4. `tests/api/auth.test.ts` - add test: 6th failed attempt returns 429.
 
 ### Risks
-- Redis unavailability at runtime must not take the login path down (fail-open vs fail-closed decision).
+- Redis unavailability intentionally fails closed (login returns 500); availability impact is accepted to preserve brute-force protection.
 - OAuth callback must remain unlimited.
 - Auth surface: Verifier must run the security-sensitive branch.
 
@@ -54,7 +54,7 @@ Phase 1 -> Analyzing
 
 ```json
 {
-  "version": "3.9.0",
+  "version": "3.10.0",
   "task_id": "tav-20260706-083000",
   "user_request": "Add rate limiting to the user login API to prevent brute force attacks",
   "task_tier": "L1",
@@ -89,11 +89,22 @@ Phase 2 -> Executing
 3. Completed `src/api/auth.ts:23` - middleware applied to login route only.
 4. Completed `tests/api/auth.test.ts` - added 429 test.
 
+### Completed Steps
+- Todos 1-4 completed without deviating from the approved fail-closed policy.
+
+### Diagnostic Probe Evidence
+- Not applicable.
+
+### TDD Evidence
+| Slice | RED Command / Result | GREEN Command / Result |
+|:------|:---------------------|:-----------------------|
+| Sixth login attempt | `npm test -- auth.test.ts` - new assertion fails before middleware | `npm test -- auth.test.ts` - 429 assertion passes after middleware |
+
 ### Blocked Items
 - None.
 
-### Next Phase
-- Enter Verifier.
+### Notes
+- No deviation from the Thinker plan.
 ```
 
 Core new file:
@@ -138,9 +149,20 @@ Phase 3 -> Reviewing
 | Syntax/type safety | pass | `npm run typecheck` clean |
 | Tests/lint | pass | lint clean; auth suite 6/6 |
 | Compatibility | pass | grep confirms loginLimiter used only at auth.ts:23; OAuth route untouched |
-| Edge cases | warn | Redis outage behavior unspecified (store throws -> 500 on login) |
+| Edge cases | pass | user-approved fail-closed policy: Redis outage returns 500 rather than bypassing rate limiting |
 | Security | pass | security branch run: no secrets, no injection, headers on, auth flow intact |
 | Side effects | pass | no other route consumes the middleware |
+
+### Standards Review
+- Status: pass
+- Repository-rule evidence: middleware follows the existing directory pattern; lint and typecheck are clean.
+
+### Spec Review
+- Status: pass
+- Acceptance evidence: only login is rate limited, OAuth remains unlimited, and the user-approved Redis fail-closed policy is preserved.
+
+### Hard-Bug Closure
+- Not applicable.
 
 ### Commands Run
 - `npm run lint` - passed.
@@ -151,16 +173,16 @@ Phase 3 -> Reviewing
 - None.
 
 ### Issue Details
-- `src/middleware/rateLimiter.ts` - if Redis is down, the store throws and login returns 500. Non-blocking, but the fail-open/fail-closed choice should be explicit.
+- None. Redis outage behavior is an explicit, user-approved fail-closed policy.
 
 ### Suggested Fix
-- Optional follow-up: wrap store commands to fail open with a logged warning, or document fail-closed as intended.
+- None. A future fail-open policy would change the approved security trade-off and requires a new decision.
 
 ### Consolidation Candidates
-- None. The Redis fail-closed trade-off is a residual risk, not durable knowledge; the OAuth exemption is derivable from the route structure (never-capture: code-derivable facts).
+- None. The Redis policy is recorded in the task definition, and the OAuth exemption is derivable from the route structure (never-capture: code-derivable facts).
 
 ### Review Result
-- Pass and enter Phase 4 (warning recorded as residual risk).
+- Pass and enter Phase 4.
 
 ### Change Summary
 - Files modified: 3, files created: 1 (from `git diff --stat`)
@@ -189,7 +211,7 @@ Phase 3 -> Reviewing
 - None.
 
 ## 剩余风险
-- Redis 不可用时登录路径返回 500（fail-closed）；如需 fail-open 需追加处理。
+- Redis 不可用时登录路径会按已批准的 fail-closed 策略返回 500；若改为 fail-open，需新的安全决策。
 
 ## 后续建议
 - 评估按账号维度的二级限流以覆盖分布式攻击源。

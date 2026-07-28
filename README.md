@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.9.0
+**Version**: 3.10.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -56,6 +56,7 @@ TAV workflow:
 - **Planned-seam TDD**: behavior changes advance one vertical red-green slice at a time through the highest stable public seam selected during Thinker analysis.
 - **Two-axis review**: after machine gates, Verifier reports repository Standards and task Spec findings separately so correctness on one axis cannot hide failure on the other.
 - **State persistence**: `.tav/state.json` enables resuming interrupted L1 work; states older than 7 days are treated as stale. See [SKILL.md](SKILL.md) Phase 0 for the schema and [references/templates/state.json](references/templates/state.json) for the full template.
+- **Independent authority gates**: branch/worktree, commit, push, PR, tracker writes, deployment, and local state cleanup each require explicit authorization; tier selection never grants permission.
 - **Native task tracking**: progress maps to the platform's real task tools (in Claude Code: `TaskCreate` / `TaskUpdate`).
 - **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [Verification Command Selection](references/verification-commands.md).
 - **Error recovery**: plan mismatches return to Thinker, gate failures return to Actor, the same blocker failing twice triggers `[ESCALATION-REPORT]` escalation, and critical security issues block completion.
@@ -102,7 +103,7 @@ If `docs/memory/` is selected as the repository's memory surface, commit it with
 - [examples/rate-limiting.md](examples/rate-limiting.md) - full L1 walkthrough including state file evolution.
 - [examples/refactoring.md](examples/refactoring.md) - behavior-preserving extraction with plan-mismatch recovery.
 - [examples/l0-quick-patch.md](examples/l0-quick-patch.md) - L0 lightweight single-pass flow with no state file.
-- [examples/pua-escalation.md](examples/pua-escalation.md) - two-strike [ESCALATION-REPORT] with Verifier independence escalation.
+- [examples/two-strike-escalation.md](examples/two-strike-escalation.md) - two-strike [ESCALATION-REPORT] with Verifier independence escalation.
 
 ## Documentation
 
@@ -120,5 +121,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.9.0**
+**TAV Workflow v3.10.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

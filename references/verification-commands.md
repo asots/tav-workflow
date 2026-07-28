@@ -35,4 +35,5 @@ Select verification commands from repository evidence. Run only commands the pro
 
 - Start with the actual `git diff`, then select the narrowest relevant gates.
 - Never run `terraform apply` or `kubectl apply` as verification; they mutate external state.
+- Never use production mutations, external messages, payments, deployments, or resource creation as a verification or diagnostic command. Prefer local, test, replay, or explicitly authorized sandbox environments.
 - If no reliable command exists, say so under skipped checks. Never report a check as passed when it was not run.

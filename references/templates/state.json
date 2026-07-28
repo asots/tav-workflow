@@ -1,9 +1,16 @@
 {
-  "version": "3.9.0",
+  "version": "3.10.0",
   "task_id": "tav-example-task",
   "user_request": "Example user request",
   "task_tier": "L1",
+  "origin": {
+    "spec_run_id": null,
+    "task_card_id": null,
+    "delivery_batch_id": null,
+    "rollback_boundary": null
+  },
   "current_phase": "thinker",
+  "cleanup_status": "not_requested",
   "current_risk_level": "medium",
   "start_time": "2026-07-06T08:00:00Z",
   "last_update": "2026-07-06T08:00:00Z",
@@ -80,7 +87,7 @@
     }
   },
   "metrics": {
-    "iterations": 1,
+    "iterations": 0,
     "files_modified": 0,
     "files_created": 0,
     "lines_added": 0,

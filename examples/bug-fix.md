@@ -86,7 +86,7 @@ Phase 3 -> Reviewing
 | Tests/lint | fail | 2 tests failing, output below |
 | Compatibility | pass | no API shape change |
 | Edge cases | warn | no try/catch around save path |
-| Security | pass | no sensitive surface touched |
+| Security | pass | persistence surface reviewed: test IDs are controlled, queries remain parameterized through Mongoose, and no authorization boundary changed |
 | Side effects | pass | no other call sites affected |
 
 ### Commands Run
@@ -157,7 +157,7 @@ Phase 3 (iteration 2) -> Reviewing
 | Tests/lint | pass | 5/5 tests pass |
 | Compatibility | pass | response shape unchanged |
 | Edge cases | pass | `markModified` is limited to the Mixed `profile` path; ordinary schema-path assignment remains unchanged |
-| Security | pass | no new surface |
+| Security | pass | database persistence review repeated; no injection, authorization, or sensitive-error regression found |
 | Side effects | pass | other `user.save()` call sites are untouched; no generic replacement of document saves |
 
 ### Commands Run
@@ -187,10 +187,17 @@ Knowledge consolidation fires before the final report: the carried candidate hit
 ---
 name: mongoose-mixed-change-tracking
 description: Mark a Mongoose Mixed path after mutating nested properties
-type: project
+type: gotcha
+tags: [mongoose, persistence, mixed-schema]
+applies_to: [src/api/user.ts, src/api/admin.ts]
 ---
 
 - After mutating nested properties beneath a `Schema.Types.Mixed` path, call `markModified('<path>')` before `save()` — Why: Mongoose does not automatically track deep Mixed-path mutations; found via a failing database re-read assertion. Apply: only to the affected Mixed path, not ordinary declared schema paths.
+```
+
+```markdown
+<!-- docs/memory/MEMORY.md -->
+- [mongoose-mixed-change-tracking](mongoose-mixed-change-tracking.md): Mongoose Mixed-path persistence rule.
 ```
 
 ```markdown
@@ -216,6 +223,7 @@ type: project
 - 为其余 6 处 `user.save()` 调用补充数据库状态断言。
 
 ## 知识沉淀
+- `docs/memory/MEMORY.md` (Modified only when the surface is declared): linked the new topic entry.
 - `docs/memory/mongoose-mixed-change-tracking.md` (Added only when the surface is declared): Mongoose `Mixed` 路径的深层修改需在保存前标记为已修改。
 ```
 

@@ -110,15 +110,50 @@ if ($null -ne $state) {
   }
   if ($missingStateFields.Count -gt 0) { Fail "state template missing recovery fields: $($missingStateFields -join ', ')" }
   elseif ($null -eq $state.review_axes.standards -or $null -eq $state.review_axes.spec) { Fail 'state template does not keep Standards and Spec review axes separate' }
+  elseif ($state.metrics.iterations -ne 0) { Fail 'state template metrics.iterations must start at 0 before an Actor-Verifier loop runs' }
   elseif ($null -eq $state.phase_outputs.thinker.approved_plan -or $null -eq $state.phase_outputs.thinker.evidence_pointers -or $null -eq $state.phase_outputs.thinker.verification_plan -or $null -eq $state.phase_outputs.verifier.results) { Fail 'state template lacks compact recoverable plan, evidence, or verification fields' }
   else { Ok 'state template carries diagnosis, TDD, two-axis review, and compact resumable phase state' }
 }
 
-$eventTexts = @('SKILL.md','README.md','README.zh-CN.md','references/implementation-guide.md','examples/pua-escalation.md') | ForEach-Object { Get-Content $_ -Raw -Encoding UTF8 }
+$eventTexts = @('SKILL.md','README.md','README.zh-CN.md','references/implementation-guide.md','examples/two-strike-escalation.md') | ForEach-Object { Get-Content $_ -Raw -Encoding UTF8 }
 $eventText = $eventTexts -join "`n"
 if ($eventText.Contains('[PUA-REPORT]')) { Fail 'current workflow surfaces still use the obsolete [PUA-REPORT] tag' }
 elseif (-not $eventText.Contains('[ESCALATION-REPORT]')) { Fail 'current workflow surfaces do not define the [ESCALATION-REPORT] tag' }
 else { Ok 'current workflow surfaces use the neutral escalation-event tag' }
+
+if ($skill -notlike '*## Authority and External-State Contract*' -or $skill -notlike '*cleanup_status: awaiting_authorization*') {
+  Fail 'SKILL.md lacks the standalone authority and deferred-cleanup contract'
+} else { Ok 'SKILL.md carries independent authority gates and deferred cleanup' }
+
+if ($skill -notlike '*expected TDD RED results*' -or $skill -notlike '*pre-change baseline failures*' -or $skill -notlike '*Risk escalation is independent from rework counting*') {
+  Fail 'SKILL.md does not separate expected failures, risk, and two-strike escalation'
+} else { Ok 'two-strike counting excludes expected failures and stays independent from risk' }
+
+if ($null -ne $state) {
+  $missingOriginFields = @()
+  if ($null -eq $state.origin) {
+    $missingOriginFields = @('origin')
+  } else {
+    foreach ($field in 'spec_run_id', 'task_card_id', 'delivery_batch_id', 'rollback_boundary') {
+      if ($null -eq $state.origin.PSObject.Properties[$field]) { $missingOriginFields += $field }
+    }
+  }
+  if ($missingOriginFields.Count -gt 0) {
+    Fail 'state template lacks spec-driven origin fields'
+  } elseif ($state.cleanup_status -ne 'not_requested') {
+    Fail 'state template cleanup_status must start at not_requested'
+  } else { Ok 'state template carries spec-driven origin and cleanup status' }
+}
+
+$l0 = Get-Content 'examples/l0-quick-patch.md' -Raw -Encoding UTF8
+if ($l0 -match 'HTTP client|external API|RETRY') { Fail 'L0 example still changes runtime or external-API behavior' }
+elseif ($l0 -notmatch 'documentation typo' -or $l0 -notmatch 'git diff --check') { Fail 'L0 example does not demonstrate a verified non-runtime patch' }
+else { Ok 'L0 example is a verified documentation-only patch' }
+
+$exampleText = @('examples/bug-fix.md','examples/refactoring.md','examples/two-strike-escalation.md') | ForEach-Object { Get-Content $_ -Raw -Encoding UTF8 } | Out-String
+if ($exampleText -match '(?m)^type:\s+project\s*$') { Fail 'examples use a memory type outside fact|rule|decision|gotcha' }
+elseif ($exampleText -notmatch 'Failed or Skipped Commands') { Fail 'examples do not demonstrate the required final-report command section' }
+else { Ok 'examples use canonical memory types and final-report command sections' }
 
 if ($script:fail -gt 0) { Write-Host "`n$($script:fail) check(s) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host "`nAll checks passed" -ForegroundColor Green; exit 0

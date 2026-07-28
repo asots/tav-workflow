@@ -22,4 +22,4 @@ This repository is a skill specification (documentation), not a runtime library.
 
 ## Examples
 
-When adding an example, cover a boundary the existing three do not — L0 lightweight flow, PUA escalation, plan-mismatch recovery, etc. Examples must demonstrate the output contracts defined in the templates.
+When adding an example, cover a boundary the existing five do not — L0 lightweight flow, two-strike escalation, plan-mismatch recovery, etc. Examples must demonstrate the output contracts defined in the templates.

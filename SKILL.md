@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
-description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.9.0
+description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
+version: 3.10.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -53,7 +53,7 @@ Tier is about risk and blast radius, not just file count. Choose L1 when **any**
 - The fix needs a new or strengthened test to prove correctness.
 - The diff will likely exceed ~30 lines or touch 2+ files.
 
-A one-line typo or config-value change with an obvious, local effect stays L0 even if it edits a "scary" file. When unsure, choose the higher tier.
+A one-line typo, display-text correction, or local metadata change stays L0 only when evidence proves it cannot change runtime, security, data, public-contract, or external-system behavior. The containing filename never creates an exception to the sensitive-surface rules. When unsure, choose the higher tier.
 
 ### L2 Escalation Signals
 
@@ -67,6 +67,22 @@ Keep this list in sync with `spec-driven-develop` § "Escalation Signals" — bo
 A refactor confined to one module — however messy — stays at L1.
 
 When unsure, choose the higher tier.
+
+---
+
+## Authority and External-State Contract
+
+TAV tiering determines engineering rigor, not permission. Read-only inspection and user-requested local edits are allowed within scope; every action below requires its own explicit authorization and one permission never implies another:
+
+- create or switch a branch/worktree;
+- commit or amend;
+- push or force-push;
+- create, edit, merge, or close a PR;
+- create or update Issues, Projects, milestones, labels, or other remote tracker state;
+- deploy, publish, restart services, purchase, or mutate any external environment;
+- archive, move, or delete local workflow state.
+
+Without cleanup authorization, leave task state at `current_phase: complete`, set `cleanup_status: awaiting_authorization`, and report the pending cleanup. Never interpret README guidance such as "commit with the repo" as authorization to run Git commands.
 
 ---
 
@@ -111,6 +127,7 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 ### Evidence rules
 
 - Every conclusion must cite file paths, symbols, line ranges, logs, or command output.
+- Redact secrets, credentials, cookies, authorization headers, connection strings, private user data, and sensitive payloads before placing evidence in state, reports, memory, or remote trackers. Keep full logs only in an approved local location and cite a compact pointer.
 - Prefer targeted reads and searches over broad file dumps.
 - If the project has a memory index (`docs/memory/MEMORY.md`), read **only the index lines** (one hook per entry) and shortlist entries whose hook mentions the task's files, modules, or topic. Open only the shortlisted entry files, then use their `applies_to`/`tags` frontmatter to confirm relevance and discard mismatches — previously captured knowledge is first-class evidence, but loading every entry wastes context. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
 - If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution and decision recording route through the `domain-modeling` skill when available (write targets in Phase 4).
@@ -122,7 +139,7 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 
 Use this branch when the failure resists an obvious first-pass explanation, is intermittent, is a performance regression, or the user explicitly asks for diagnosis/debugging. Ordinary scoped fixes keep the standard Thinker flow.
 
-1. **Establish the feedback loop before theorizing.** Identify and run one existing command, script, trace replay, or debugger/REPL path that exercises the user's exact symptom. It must be red-capable, deterministic (or have a measured high reproduction rate for a flaky bug), as fast as practical, and agent-runnable. If a new harness or source instrumentation is required, design it here and use the diagnostic Actor micro-loop below instead of editing during Thinker.
+1. **Establish the feedback loop before theorizing.** Identify and run one existing command, script, trace replay, or debugger/REPL path that exercises the user's exact symptom. It must be red-capable, deterministic (or have a measured high reproduction rate for a flaky bug), as fast as practical, agent-runnable, and confined to local, test, or explicitly authorized sandbox state. Never use a production mutation, external message, payment, deployment, or resource creation as a diagnostic feedback loop. If a new harness or source instrumentation is required, design it here and use the diagnostic Actor micro-loop below instead of editing during Thinker.
 2. **Reproduce and minimize.** Confirm the loop catches the reported failure, then remove inputs, callers, configuration, data, and steps one at a time until every remaining element is load-bearing.
 3. **Rank falsifiable hypotheses.** Write 3-5 candidate causes before testing them. Each hypothesis states a prediction that one targeted probe can confirm or falsify. Share the ranking as a non-blocking checkpoint when user domain knowledge could materially reorder it.
 4. **Probe one variable at a time.** Prefer read-only debugger/REPL inspection. When a file edit is required, specify one falsifying prediction, the exact probe files, a unique removable tag, and a cleanup check for the diagnostic Actor. Performance work starts from a measured baseline, profiler/query plan, or bisection signal rather than broad logging.
@@ -149,30 +166,7 @@ The prototype follows the diagnostic-probe discipline: explicitly marked as thro
 
 ### Required Thinker output
 
-```markdown
-**evidence gathered**:
-- `path/to/file:line-range` - finding
-- command/log evidence - finding
-
-**analysis summary**:
-- Root cause or implementation approach.
-
-**hard-bug evidence** (when applicable):
-- Feedback command + first observed result/reproduction rate.
-- Ranked hypotheses with one falsifiable prediction each.
-- Diagnostic probe plan/status: files, unique tag, pre-probe baseline, cleanup check, observed signal.
-- Test seam for the planned regression proof, or explicit architecture limitation.
-
-**todo list**:
-1. `path/to/file` - exact planned change.
-2. `path/to/file` - exact planned change.
-
-**risks**:
-- Regression, compatibility, security, or operational risks.
-
-**verification plan**:
-- Exact commands to run, or explicit reason if no command is available.
-```
+For every L1 cycle, read and fill `references/templates/thinker-output.md`. That template is the canonical Thinker output schema; do not replace it with an abbreviated inline format. Mark non-applicable hard-bug and test-seam fields explicitly rather than omitting them.
 
 After Thinker completes, update native task tracking (and `.tav/state.json` if it exists).
 
@@ -189,7 +183,7 @@ Actor executes the approved todo list. Do not perform unrelated refactors.
 3. Prefer editing existing files over creating new ones.
 4. Keep changes cohesive and small enough to avoid truncation.
 5. Update `completed_steps` after each meaningful chunk.
-6. For long task cards (5+ todo items or an expected diff beyond ~300 lines), checkpoint proactively: after every 3-4 completed todos, persist progress (`.tav/state.json` when in use, otherwise the native task tracker) and run the cheapest relevant gate (syntax or type check) on the touched files before continuing. Recovery from a mid-task interruption must never depend on conversation memory.
+6. For long task cards (5+ todo items or an expected diff beyond ~300 lines), checkpoint proactively: after every 3-4 completed todos, persist progress (`.tav/state.json` when in use, otherwise the native task tracker) and run the cheapest relevant gate (syntax or type check) on the touched files before continuing. Recovery from a mid-task interruption must never depend on conversation memory. When the card came from a Spec-Driven plan, `XL` is invalid at task level; return it for decomposition into recoverable task cards instead of treating checkpointing as a reason to widen it.
 
 ### Actor boundaries
 
@@ -212,23 +206,7 @@ Use test-driven execution when the Thinker plan requires new or strengthened aut
 
 ### Required Actor output
 
-```markdown
-**progress**:
-1. Completed `path/to/file` - change made.
-2. Completed `path/to/file` - change made.
-
-**diagnostic probe evidence** (when this output is for a probe micro-step):
-- Prediction, command/result, unique tag, cleanup command, and proof that probe paths returned to their pre-probe baseline.
-
-**TDD evidence** (when applicable):
-- Slice: RED command/result → GREEN command/result.
-
-**blocked items**:
-- None, or exact blocker with evidence.
-
-**next phase**:
-- Enter Verifier, or return to Thinker because the plan is incomplete.
-```
+For every L1 cycle, read and fill `references/templates/actor-output.md`. That template is the canonical Actor output schema; mark diagnostic-probe and TDD sections as not applicable when unused.
 
 ---
 
@@ -241,12 +219,11 @@ Verifier checks the change independently. Do not rely on Actor's summary.
 1. Run `git diff` (or the VCS equivalent) first and review the actual changes, not the reported ones.
 2. Check surrounding code and references affected by the change.
 3. Treat Thinker's `verification plan` as candidate commands; confirm each still matches the project stack (re-read the evidence if unsure), run them, and add any stack-appropriate checks Thinker missed. Do not silently re-derive the whole list from scratch.
-4. Add stack-appropriate checks if Thinker missed obvious project commands.
-5. Check security-sensitive surfaces when relevant.
-6. Perform the two-axis review below after machine checks; keep Standards and Spec findings separate.
-7. Verify behavior, not just file presence.
-8. Record pass/fail results in native task tracking (and `.tav/state.json` if it exists).
-9. Flag knowledge consolidation candidates observed during review — rework lessons, non-obvious root causes, undocumented project commands — for evaluation in Phase 4.
+4. Check security-sensitive surfaces when relevant.
+5. Perform the two-axis review below after machine checks; keep Standards and Spec findings separate.
+6. Verify behavior, not just file presence.
+7. Record pass/fail results in native task tracking (and `.tav/state.json` if it exists).
+8. Flag knowledge consolidation candidates observed during review — rework lessons, non-obvious root causes, undocumented project commands — for evaluation in Phase 4.
 
 ### Verification command selection
 
@@ -277,29 +254,7 @@ When the change touches a security-sensitive surface, or the same task has accum
 
 ### Required Verifier output
 
-```markdown
-**verification items**:
-| Check | Status | Evidence |
-|-------|--------|----------|
-| Syntax/type safety | pass/fail/warn | ... |
-| Tests/lint | pass/fail/warn | ... |
-| Compatibility | pass/fail/warn | ... |
-| Edge cases | pass/fail/warn | ... |
-| Security | pass/fail/warn | ... |
-| Side effects | pass/fail/warn | ... |
-
-**Standards review**:
-- pass/fail/warn — repository-rule or heuristic evidence.
-
-**Spec review**:
-- pass/fail/warn — acceptance evidence for missing/partial behavior, scope creep, or semantic mismatch.
-
-**hard-bug closure** (when applicable):
-- Minimized regression proof, original feedback command, tag search, and probe-path baseline-restoration evidence.
-
-**result**:
-- Pass and enter Complete, or return to Actor/Thinker with exact fixes.
-```
+For every L1 cycle, read and fill `references/templates/verifier-output.md`. That template is the canonical Verifier output schema; it requires separate Standards and Spec axes even when both pass.
 
 ---
 
@@ -336,6 +291,10 @@ Write target — resolve the memory surface before choosing a file:
 
 If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the resolved memory surface. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
 
+### Post-consolidation verification
+
+When Phase 4 writes or updates a memory, instruction, glossary, or ADR surface, rerun `git diff` after that write, inspect the newly changed hunk, and run the narrowest available documentation/static validation. Recheck the added material for secrets and sensitive evidence. The Phase 3 verdict covers the implementation diff; do not claim it automatically verifies documentation written afterwards.
+
 ### Final report
 
 Use this final format when files were modified. Render all headings in the user's working language; the Chinese headings below are the reference layout.
@@ -371,7 +330,7 @@ Report only measurable facts. File and line counts come from `git diff --stat`; 
 
 In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires a handoff. In orchestrator-direct execution, the orchestrator records authorized project-level progress and execution events; in a lane or delegated assignment, return the write-back payload and do not mark the project task complete yourself. Knowledge consolidation, when it fires, is returned as a candidate and routes through the governance surfaces resolved in MASTER.md.
 
-Archive or remove `.tav/state.json` only after completion and only if it belongs to the completed workflow. Do not delete VCS metadata under any circumstance.
+Archive or remove `.tav/state.json` only after completion, only if it belongs to the completed workflow, and only with explicit cleanup authorization. Otherwise preserve it with `current_phase: complete` and `cleanup_status: awaiting_authorization`. Do not delete VCS metadata under any circumstance.
 
 ---
 
@@ -382,7 +341,7 @@ Archive or remove `.tav/state.json` only after completion and only if it belongs
 | Ambiguous requirement | Thinker | Ask one focused question, then update plan |
 | Incomplete plan | Actor | Stop and return to Thinker with evidence |
 | Quality gate failure | Verifier | Return to Actor with exact command output |
-| Same blocker fails twice | Any phase | Emit `[ESCALATION-REPORT]` and escalate |
+| Same blocker fails twice | Any phase | Emit `[ESCALATION-REPORT]`, run verification escalation, and re-plan before more implementation |
 | Critical security issue | Verifier | Block completion and request explicit user decision |
 | Token/context pressure | Any phase | Save state, summarize progress, pause |
 
@@ -394,10 +353,10 @@ Risk level is set in Thinker and may change as evidence accumulates. Escalate (n
 |-------|-----------------|-----------------|
 | low | Localized, obvious change, no security/data surface | Standard TAV |
 | medium | Multi-file or behavior-affecting change, no sensitive surface | Standard TAV; Verifier checks side effects |
-| high | Touches a security-sensitive surface, or first rework iteration | Explicit side-effect review; run Verifier as an independent reviewer agent when security-sensitive or already at the second consecutive failure |
-| critical | Confirmed security issue, data-loss risk, or two+ rework iterations on a sensitive surface | Block completion; request explicit user decision before proceeding |
+| high | Touches a security-sensitive surface or evidence shows materially wider blast radius | Explicit side-effect and relevant security review; use an independent Verifier when available |
+| critical | Confirmed security issue, data-loss risk, irreversible operation, or authority/spec boundary crossing | Block completion; request explicit user decision before proceeding |
 
-When risk escalates to high or critical mid-cycle, re-run the security-sensitive branch and consider promoting the Verifier to an independent reviewer agent. Downgrading requires fresh Thinker evidence that the original trigger no longer applies — record the reason in the Verifier output.
+Risk escalation is independent from rework counting. A rework iteration can increase verification independence without changing risk; run the security-sensitive branch only when the affected surface warrants it. Downgrading requires fresh Thinker evidence that the original trigger no longer applies — record the reason in the Verifier output.
 
 ### Failure counting semantics
 
@@ -405,7 +364,8 @@ The "same blocker fails twice" rule needs a stable key so the count is meaningfu
 
 - **Blocker key** = `todo_id` (or the verification command string when the failure is a gate command) + a normalized error signature. Normalize by keeping the stable part (error type/code, failing rule or test name) and stripping volatile parts (line numbers, file offsets, timestamps, memory addresses) — `TS2532`, not `TS2532-dashboard.ts:8`. Record the normalized key from the first failure; never widen a key after the fact to make two failures match. Store it under `failure_counts.by_blocker` for plan/structural failures and `failure_counts.by_command` for gate-command failures.
 - **Consecutive**: only consecutive failures of the *same* key count. A success or a Thinker re-plan resets the counter for that key.
-- **Two-strike trigger**: the second consecutive failure of the same key emits `[ESCALATION-REPORT]`. A third is not required — escalate on two.
+- **Count only unexpected comparable failures**: expected TDD RED results, pre-change baseline failures, hypothesis probes, intentionally incomplete intermediate checks, and confirmed environment/infrastructure failures do not increment the counter. Record them as evidence under their own lifecycle instead.
+- **Two-strike trigger**: the second consecutive failure of the same key emits `[ESCALATION-REPORT]`, requires an independent Verifier when available, and returns to Thinker for a re-plan before more implementation. A third is not required — escalate on two. This verification escalation does not itself require user approval; request an explicit user decision only if the safe next step changes the approved spec, acceptance criteria, architecture, rollback boundary, irreversible operation, or external authority.
 - **Re-plan resets**: when the Thinker revises the todo list after a return, all `failure_counts` entries for the superseded todos are cleared, because the blocker key is no longer valid.
 
 Never reset a counter to avoid escalation. If the same root cause keeps surfacing under different keys, treat that as a Thinker signal that the diagnosis is wrong.
@@ -432,6 +392,7 @@ When `docs/progress/MASTER.md` exists and the current task comes from a `spec-dr
 - Take the task definition from the pending GitHub Issue or phase-file entry, not from a re-interpretation of the original user request.
 - Treat the task card's acceptance criteria as the baseline of the verification plan; add stack-appropriate gates on top.
 - Treat the task card's S.U.P.E.R design drivers as additional Verifier check items.
+- Treat the task card's dependencies, delivery shape, and rollback boundary as fixed execution constraints. If a LOCAL_ONLY entry lacks them, return the incomplete task-card evidence to the orchestrator instead of inferring them from the original user request.
 - Treat the task card's memory/governance impact field as pre-declared candidates for Phase 4 knowledge consolidation.
 
 **Completion write-back (after Verifier passes):**
@@ -469,7 +430,7 @@ For independent read-only analysis, use parallel agents when helpful. For edits,
 Read these on demand, not upfront:
 
 - `references/templates/state.json` - read before creating `.tav/state.json` for the first time.
-- `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - read before producing a phase output when the inline format above is not detailed enough.
+- `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - canonical L1 phase-output schemas; read the matching template before producing each phase output.
 - `references/implementation-guide.md` - operational details: state lifecycle, native task tracking, metrics rules, knowledge consolidation mechanics, safety notes.
 - `references/verification-commands.md` - evidence-to-command selection for application stacks and configuration/IaC.
 - `examples/bug-fix.md` - two-iteration loop where Verifier catches an incomplete fix.

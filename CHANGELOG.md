@@ -1,5 +1,16 @@
 # TAV Workflow Changelog
 
+## Version 3.10.0 (2026-07-28)
+
+### Contract hardening and recovery alignment
+
+- **Changed**: L2 routing now requires the shared two-signal test; bare rewrite, migration, or refactor wording no longer forces spec-driven routing.
+- **Changed**: L0 is limited to evidence-proven non-runtime, non-sensitive changes; the example now uses a documentation-only correction.
+- **Added**: Independent authority gates for branch/worktree, commit, push, PR, tracker writes, external mutations, and local state cleanup.
+- **Changed**: Risk escalation, Verifier independence, two-strike counting, and user-decision boundaries are separate; expected RED, baseline, probe, intermediate, and infrastructure failures do not count as strikes.
+- **Added**: Spec-driven origin and cleanup status fields to resumable state.
+- **Fixed**: Current examples now align database/payment security review, memory enums, test-file counts, final report sections, and two-strike semantics with the canonical templates.
+
 ## Version 3.9.0 (2026-07-28)
 
 ### Alignment, domain-language, and prototype hooks

@@ -6,7 +6,7 @@
 
 TAV（Think-Act-Verify，思考-执行-验证）是一个面向范围明确的软件变更的结构化工作流。它将分析、执行、验证三种职责分离，确保每一次非平凡的修改都基于证据、保持最小化、并在宣告完成前经过独立检查。
 
-**版本**：3.9.0
+**版本**：3.10.0
 **状态**：Stable
 
 权威规范位于 [SKILL.md](SKILL.md)。本 README 面向读者提供概览；schema、命令表、输出契约只在 skill 文件中定义一次，此处仅作引用。
@@ -56,6 +56,7 @@ TAV 工作流：
 - **按计划 seam 的 TDD**：行为变更通过 Thinker 选定的最高稳定公共边界，以一个纵向 red-green 切片为单位推进。
 - **双轴审查**：机器门禁之后，Verifier 分开报告仓库 Standards 与任务 Spec，避免一个维度通过掩盖另一个维度失败。
 - **状态持久化**：`.tav/state.json` 支持恢复被中断的 L1 工作；超过 7 天的状态视为过期。schema 见 [SKILL.md](SKILL.md) Phase 0，完整模板见 [references/templates/state.json](references/templates/state.json)。
+- **独立授权门**：分支/worktree、commit、push、PR、远端 tracker 写入、部署和本地状态清理均需分别明确授权；任务分级不会自动授予权限。
 - **原生任务跟踪**：进度映射到平台的真实任务工具（Claude Code 中为 `TaskCreate` / `TaskUpdate`）。
 - **栈感知质量门禁**：验证命令基于仓库证据选择（lockfile、`pyproject.toml`、`Cargo.toml`、`go.mod`、CI 配置）。完整表格见[验证命令选择](references/verification-commands.md)。
 - **错误恢复**：计划不匹配时返回 Thinker，门禁失败时返回 Actor，同一阻塞点失败两次触发 `[ESCALATION-REPORT]` 升级，关键安全问题阻断完成。
@@ -102,7 +103,7 @@ Phase 4: Completion
 - [examples/rate-limiting.md](examples/rate-limiting.md) - 完整 L1 演练，含状态文件演化。
 - [examples/refactoring.md](examples/refactoring.md) - 行为保持的提取重构，含计划不匹配恢复演示。
 - [examples/l0-quick-patch.md](examples/l0-quick-patch.md) - L0 轻量单遍流程，不建状态文件。
-- [examples/pua-escalation.md](examples/pua-escalation.md) - 两次同阻塞失败触发 `[ESCALATION-REPORT]` 与验证独立性升级。
+- [examples/two-strike-escalation.md](examples/two-strike-escalation.md) - 两次同阻塞失败触发 `[ESCALATION-REPORT]` 与验证独立性升级。
 
 ## 文档
 
@@ -120,5 +121,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.9.0**
+**TAV Workflow v3.10.0**
 *Think-Act-Verify：基于证据的变更、最小化执行、经验证的完成。*

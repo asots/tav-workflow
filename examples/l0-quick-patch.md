@@ -1,66 +1,59 @@
 # Example: L0 Quick Patch
 
-Demonstrates the lightweight single-pass TAV for an obvious, localized single-file change. No state file, no templated phase outputs — just evidence, edit, baseline check. L0 is the smallest workflow that is still safe.
+Demonstrates lightweight single-pass TAV for an obvious documentation typo. No state file or templated phase outputs are needed.
 
 ## User Request
 
-"The retry count in the HTTP client defaults to 0, so every transient error fails immediately. Set it to 3."
+"The CLI usage page spells `--output` as `--ouput`. Correct the typo."
 
 ## Tier Decision
 
-L0: a single constant in one file, no security or data surface, no behavior beyond the edited line. Risk: low. Per the L0 vs L1 boundary, none of the L1 triggers apply (no sensitive surface, no cross-file effect, no new test needed, diff well under ~30 lines).
+L0: one display-text correction in one Markdown file. Evidence confirms the text is not generated, parsed, copied into runtime configuration, or used as a command example by automated tests. No sensitive surface, public contract, or cross-file runtime effect is involved.
 
 ## Thinker (inline, not templated)
 
-L0 skips the full templated Thinker block, but evidence is still required:
-
-- `src/http/client.ts:12` - `const RETRY = 0;` confirmed; the value is consumed only by the retry loop at `src/http/client.ts:40`.
-- Plan: change `0` to `3` on line 12. Searched `RETRY` - no other call sites.
-- Verification plan (candidate): `npm test` - the existing `tests/http/client.test.ts` asserts retry behavior.
+- `docs/cli.md:18` contains `--ouput` in explanatory prose.
+- `rg -n -- '--ouput' docs README.md` returns only that line.
+- Plan: replace the misspelling and run the repository's Markdown/static check if configured, plus `git diff --check`.
 
 ## Actor
 
-Single edit applied:
-
-```typescript
-// src/http/client.ts:12
-const RETRY = 3;
-```
+Changed `--ouput` to `--output` in `docs/cli.md:18`; no other text or formatting changed.
 
 ## Verifier
 
-- `git diff`: one one-line change, matches the plan exactly.
-- `npm test`: PASS (12 passing). The retry test now exercises 3 attempts and still passes.
-- No security-sensitive surface touched; no side effects on other call sites.
+- `git diff -- docs/cli.md`: one word changed and matches the request.
+- `rg -n -- '--ouput' docs README.md`: no matches.
+- `git diff --check`: pass.
+- No runtime, security, data, public-contract, or external-system behavior changed.
 
 ## Completion
 
-Lightweight report (L0 uses the standard final-report shape, but no templated phase-output blocks and no `.tav/state.json`):
-
 ```markdown
 ## Summary
-- Set the HTTP client default retry from 0 to 3 in `src/http/client.ts:12`.
+- Corrected the `--output` spelling in `docs/cli.md`.
 
 ## Files Changed
-- `src/http/client.ts` (Modified): RETRY constant 0 -> 3.
+- `docs/cli.md` (Modified): corrected one documentation typo.
 
 ## Verification
-- ✅ `npm test` passed (12 passing)
+- ✅ `rg -n -- '--ouput' docs README.md` returned no matches.
+- ✅ `git diff --check` passed.
 
 ## Failed or Skipped Commands
-- None.
+- Repository Markdown check not run: no configured command was found.
 
 ## Residual Risks
-- None.
+- None identified for the documentation-only change.
 
 ## Next Steps
 - None.
 ```
 
-No knowledge consolidation: the change is obvious and already recorded in the code. Zero captures is the default outcome, not a failure.
+No knowledge consolidation: the correction is obvious and already represented by the updated documentation.
 
 ## Key Takeaways
 
-1. **L0 skips ceremony.** No `.tav/state.json`, no full Thinker/Actor/Verifier templated blocks — evidence, edit, baseline check in one pass.
-2. **Evidence is still required.** Even an obvious change cites the line and confirms the blast radius before editing.
-3. **The baseline check is not optional.** A one-line change still runs the test suite; "obvious" does not mean "unverified".
+1. L0 is based on proven behavior and risk, not only line count.
+2. A filename never overrides sensitive-surface rules.
+3. Even a typo receives evidence, an exact diff review, and the cheapest available gate.

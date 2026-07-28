@@ -1,6 +1,6 @@
 # TAV Workflow Implementation Guide
 
-This guide covers operational details that go beyond the specification in `SKILL.md`. When this guide and `SKILL.md` disagree, `SKILL.md` wins. Command tables live in `references/verification-commands.md`; output contracts and the escalation format are defined in `SKILL.md` and are not repeated here.
+This guide covers operational details that go beyond the specification in `SKILL.md`. When this guide and `SKILL.md` disagree, `SKILL.md` wins. Command tables live in `references/verification-commands.md`; the phase-output schemas live only in `references/templates/`, while `SKILL.md` defines when they are required.
 
 ## Operating Model
 
@@ -35,7 +35,7 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 - Update `current_phase`, `completed_steps`, and `last_update` at each phase transition.
 - For hard bugs, keep `diagnosis.feedback_command`, the compact baseline result/reproduction rate, ranked hypothesis summaries, and current probe lifecycle (`planned|applied|removed|not_applicable`) recoverable. For test-first work, keep the chosen `tdd.test_seam` plus compact RED/GREEN command evidence. For review, persist separate `review_axes.standards` and `review_axes.spec` statuses and evidence pointers.
 - Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `SKILL.md` § "Failure counting semantics" — two consecutive failures of the same key triggers `[ESCALATION-REPORT]`.
-- `phase_outputs` holds compact, recoverable state: the approved plan or next action, evidence pointers, and the verification plan/results needed to resume without chat history. Never duplicate the whole Thinker/Actor/Verifier report or full logs into state; they drift and waste space.
+- `phase_outputs` holds compact, recoverable state: the approved plan or next action, evidence pointers, and the verification plan/results needed to resume without chat history. Never duplicate the whole Thinker/Actor/Verifier report or full logs into state; they drift and waste space. Redact secrets, credentials, authorization data, private user data, and sensitive payloads before persisting any evidence pointer or result summary.
 
 ### Staleness and cleanup
 
@@ -66,7 +66,7 @@ Report only measurable facts:
 
 #### Hard-bug diagnostic mechanics
 
-- Store the feedback-loop command and its first observed result in `evidence gathered`; carry the same command into the verification plan and `diagnosis.feedback_command` so the Verifier reruns the identical signal.
+- Store the feedback-loop command and its first observed result in `evidence gathered`; carry the same command into the verification plan and `diagnosis.feedback_command` so the Verifier reruns the identical signal. The loop must target local, test, or explicitly authorized sandbox state; production mutations and external state changes are never diagnostic evidence.
 - Treat a flaky reproduction rate as measured evidence. Record the loop count and observed failures before and after tightening rather than describing it as "sometimes".
 - Minimize one dimension at a time and rerun after each reduction. The minimized case becomes the regression-test input when a correct seam exists.
 - Hypotheses belong in the hard-bug evidence block, ranked with one falsifiable prediction each. A file-changing probe enters the diagnostic Actor micro-loop only after it maps to one prediction.
