@@ -1,6 +1,6 @@
 # Example: Two-Strike Escalation After Two Consecutive Failures
 
-Demonstrates the two-strike `[ESCALATION-REPORT]` rule. The Actor attempts the same fix twice; the Verifier fails on the same blocker key both times. The second consecutive failure emits an `[ESCALATION-REPORT]` and escalates verification independence — the agent that wrote the fix twice is the least likely to see what is still wrong with it.
+Demonstrates the two-strike `[ESCALATION-REPORT]` rule. This is a focused protocol excerpt, not a full canonical Phase 1-3 output walkthrough. The Actor attempts the same fix twice; the Verifier fails on the same blocker key both times. The second consecutive failure emits an `[ESCALATION-REPORT]` and escalates verification independence — the agent that wrote the fix twice is the least likely to see what is still wrong with it.
 
 ## User Request
 
@@ -27,7 +27,7 @@ export function getUser(id: number): User | null {
 
 - `git diff`: return type widened, but the required dashboard guard and regression test are absent. This is an unexpected incomplete implementation, not an expected intermediate or TDD RED result, so the failing gate counts toward the blocker key.
 - `pnpm typecheck`: **FAIL** - `src/dashboard.ts:8` - `Object is possibly 'null'.` (TS2532).
-- Blocker key recorded in `failure_counts.by_command`: `todo-2:pnpm typecheck:TS2532` = 1. The signature keeps the todo scope and stable error code while stripping the volatile location (`dashboard.ts:8`), per SKILL.md § "Failure counting semantics".
+- Blocker key recorded in `failure_counts.by_command`: `pnpm typecheck:TS2532` = 1. A command key contains only the verification command plus the stable error signature; the volatile location (`dashboard.ts:8`) is stripped, per SKILL.md § "Failure counting semantics".
 - Result: return to Actor with the exact error.
 
 ## Phase 2: Actor (Iteration 2)
@@ -43,7 +43,7 @@ const name = getUser(1)!.name;
 
 - `git diff`: non-null assertion added at `src/dashboard.ts:8`.
 - `pnpm typecheck`: **FAIL** - same `TS2532` family, now on `src/dashboard.ts:12` where `getUser(1).email` is used. The assertion suppressed one site but the underlying null-handling is still missing.
-- Blocker key `todo-2:pnpm typecheck:TS2532` is now **2 consecutive** failures. Because the key was normalized (location stripped) from the first failure, the new location (line 12 instead of line 8) still hits the same key — no after-the-fact widening needed.
+- Blocker key `pnpm typecheck:TS2532` is now **2 consecutive** failures. Because the key was normalized (location stripped) from the first failure, the new location (line 12 instead of line 8) still hits the same key — no after-the-fact widening needed.
 - Second consecutive failure of the same key -> emit `[ESCALATION-REPORT]` and escalate.
 
 ## [ESCALATION-REPORT]
@@ -51,7 +51,7 @@ const name = getUser(1)!.name;
 ```text
 [ESCALATION-REPORT]
 - 触发节点：Verifier / Phase 3 (iteration 2)
-- 失败次数：2 (consecutive, key=todo-2:pnpm typecheck:TS2532)
+- 失败次数：2 (consecutive, key=pnpm typecheck:TS2532)
 - 核心瓶颈：Suppressing null with `!` at individual call sites does not fix the null-safety defect; TS2532 keeps surfacing at new sites.
 - 异常上下文：pnpm typecheck -> TS2532 at src/dashboard.ts:8 (iter 1) then src/dashboard.ts:12 (iter 2).
 - 纠正性复盘：The Actor treated the symptom (one type error) twice instead of the root cause (no null guard on the getUser result). Escalate to an independent reviewer agent; the same agent is unlikely to see the missing guard it has now twice avoided.

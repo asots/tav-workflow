@@ -22,4 +22,4 @@ This repository is a skill specification (documentation), not a runtime library.
 
 ## Examples
 
-When adding an example, cover a boundary the existing five do not — L0 lightweight flow, two-strike escalation, plan-mismatch recovery, etc. Examples must demonstrate the output contracts defined in the templates.
+When adding an example, cover a boundary the existing five do not — L0 lightweight flow, two-strike escalation, plan-mismatch recovery, etc. Full L1 walkthroughs must demonstrate every section in the canonical Thinker, Actor, and Verifier templates, marking non-applicable fields explicitly. Focused protocol examples may show only the relevant excerpt but must say they are not full phase-output walkthroughs. L0 examples demonstrate the lightweight non-templated flow defined by `SKILL.md`.

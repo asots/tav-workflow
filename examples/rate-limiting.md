@@ -32,6 +32,12 @@ Phase 1 -> Analyzing
 ### Analysis Summary
 - User-approved availability policy: fail closed. If Redis is unavailable, login returns 500 rather than silently allowing unbounded authentication attempts. Add `express-rate-limit` with a Redis store so limits hold across instances. Apply only to the login route. Thresholds: 5 attempts per 15 minutes per IP (check latest package versions on the registry before pinning).
 
+### Hard-Bug Evidence
+- Not applicable: this is a planned security feature, not a diagnosis/debugging task.
+
+### Test Seam
+- `tests/api/auth.test.ts` exercises the public login HTTP route with the configured Redis-backed limiter; it can prove the sixth attempt returns 429 while the OAuth callback remains unaffected.
+
 ### Todo List
 1. `package.json` - add `express-rate-limit` and `rate-limit-redis` (versions from registry).
 2. `src/middleware/rateLimiter.ts` - create `loginLimiter` using the existing Redis client, standard headers on, 429 handler.
@@ -54,7 +60,7 @@ Phase 1 -> Analyzing
 
 ```json
 {
-  "version": "3.10.0",
+  "version": "3.11.0",
   "task_id": "tav-20260706-083000",
   "user_request": "Add rate limiting to the user login API to prevent brute force attacks",
   "task_tier": "L1",
@@ -193,31 +199,31 @@ Phase 3 -> Reviewing
 ## Phase 4: Completion
 
 ```markdown
-## 变更摘要
+## Summary
 - 为登录接口添加基于 Redis 的分布式限流（每 IP 15 分钟 5 次），OAuth 回调不受影响。
 
-## 涉及文件
+## Files Changed
 - `package.json` (Modified): 新增 express-rate-limit 与 rate-limit-redis。
 - `src/middleware/rateLimiter.ts` (Added): loginLimiter 中间件。
 - `src/api/auth.ts` (Modified): 登录路由挂载限流中间件。
 - `tests/api/auth.test.ts` (Modified): 新增 429 限流测试。
 
-## 验证结果
+## Verification
 - ✅ `npm run lint` passed
 - ✅ `npm run typecheck` passed
 - ✅ `npm test -- auth.test.ts` passed (6 passing)
 
-## 失败或未执行的命令
+## Failed or Skipped Commands
 - None.
 
-## 剩余风险
+## Residual Risks
 - Redis 不可用时登录路径会按已批准的 fail-closed 策略返回 500；若改为 fail-open，需新的安全决策。
 
-## 后续建议
+## Next Steps
 - 评估按账号维度的二级限流以覆盖分布式攻击源。
 ```
 
-State cleanup: archive `.tav/state.json` to `.tav/archive/` (it belongs to this completed workflow).
+State cleanup: after explicit cleanup authorization, archive `.tav/state.json` to `.tav/archive/` because it belongs to this completed workflow. Without that authorization, preserve it with `current_phase: complete` and `cleanup_status: awaiting_authorization`.
 
 ## Alternative Scenarios
 

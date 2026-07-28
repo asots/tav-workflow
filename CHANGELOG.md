@@ -1,5 +1,17 @@
 # TAV Workflow Changelog
 
+## Version 3.11.0 (2026-07-28)
+
+### Canonical outputs and interop alignment
+
+- **Fixed**: The Spec-Driven handoff now mirrors the canonical Outcome/Rework/Plan returns/Unplanned dependencies/Focused S.U.P.E.R payload and the three-layer project/task/recovery state ownership contract.
+- **Added**: The implementation guide documents the recoverable `failure_counts` entry schema, reset behavior, and the distinct `by_command`/`by_blocker` key formats.
+- **Fixed**: L1 examples now carry every canonical Thinker, Actor, and Verifier section; English user requests use English final-report headings.
+- **Fixed**: Cleanup examples require explicit authorization, and the two-strike command key no longer includes a todo prefix.
+- **Clarified**: `L0/L1/L2` TAV task tiers are independent from Spec-Driven `Tier 0/1/2` delivery-batch dispatch tiers; domain/instruction write targets do not compete with memory-surface priority.
+- **Documented**: The example introduced in 3.6.0 as `examples/pua-escalation.md` is now named `examples/two-strike-escalation.md`; the historical 3.6.0 entry remains unchanged.
+- **Added**: Self-checks validate L1 example schemas, cleanup authority, failure-count semantics, and the cross-repo payload/state contract.
+
 ## Version 3.10.0 (2026-07-28)
 
 ### Contract hardening and recovery alignment

@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
-version: 3.10.0
+version: 3.11.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -64,7 +64,7 @@ Keep this list in sync with `spec-driven-develop` § "Escalation Signals" — bo
 - Architectural decisions are required (layering, dependency direction, technology selection).
 - Acceptance criteria cannot be defined within a single Thinker-Actor-Verifier cycle.
 
-A refactor confined to one module — however messy — stays at L1.
+A refactor confined to one module — however messy — stays at L1 (TAV territory).
 
 When unsure, choose the higher tier.
 
@@ -281,7 +281,7 @@ Never capture:
 - Facts derivable by reading the code.
 - Session-only context (this cycle's todo list, temporary decisions).
 
-Write target — resolve the memory surface before choosing a file:
+Write target — resolve the memory surface before choosing a file. Items 1-3 are the memory-resolution priority order; domain and instruction surfaces in items 4-5 are type-specific destinations and do not compete in that order:
 
 1. **Existing governance or declared project memory surface** — in a spec-driven project, `docs/progress/MASTER.md` "Governance Status" wins; otherwise use the project's already declared memory surface. Do not create a competing source.
 2. **The platform's native project memory** — the default when no existing project declaration takes precedence and native memory is available.
@@ -398,14 +398,15 @@ When `docs/progress/MASTER.md` exists and the current task comes from a `spec-dr
 **Completion write-back (after Verifier passes):**
 
 - Return `ready for batch integration` — do not create a task-level PR or use closing keywords. In orchestrator-direct execution, the orchestrator updates the Current Status and, after integrated validation plus the required authorization, performs closure through the batch PR's `Closes #N` line (or the LOCAL_ONLY checkbox). In a lane or delegated assignment, do not edit `MASTER.md`, an Issue, or a phase file.
-- Return one execution-event payload from observed TAV signals: outcome, rework iterations, Thinker returns, files touched beyond the task card's "Affected Files" list, and the focused result for its declared S.U.P.E.R drivers. Only the orchestrator records it once according to `spec-driven-develop` `references/adaptive-control.md`.
+- Return one execution-event payload from observed TAV signals: Outcome, Rework, Plan returns, Unplanned dependencies, and Focused S.U.P.E.R result. Only the orchestrator records it once according to `spec-driven-develop` `references/adaptive-control.md`.
 - Return knowledge-consolidation candidates for the orchestrator to reconcile against "Governance Status" in MASTER.md. A lane or delegated TAV cycle never writes resolved memory or instruction surfaces directly.
 - On `[ESCALATION-REPORT]` or a blocked state, return the event before pausing. Only the orchestrator records it in an authorized Issue comment or phase file and selects watch, replan, or rescope.
 
 **State ownership:**
 
-- `docs/progress/MASTER.md` (plus GitHub Issues) is the project-level authority; never duplicate project progress into `.tav/state.json`.
-- `.tav/state.json` stays scoped to the single task in flight and is archived or deleted when that task completes. For concurrent L1 tasks, use `.tav/state-<task_id>.json` per task; never share writes between tasks.
+- `docs/progress/MASTER.md` is the project-level lightweight status authority.
+- GitHub Issues (GitHub modes) or phase-file task entries (LOCAL_ONLY) are the authoritative task-event records.
+- `.tav/state.json` is scoped to one task: it is created only when that single task needs cross-session recovery, it is archived or deleted with explicit cleanup authorization when the task completes, and it never carries project-level progress.
 
 ---
 

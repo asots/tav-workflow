@@ -1,16 +1,27 @@
 #requires -Version 5.1
 # TAV Workflow documentation self-check.
 # Verifies version consistency (single source = SKILL.md frontmatter), internal link
-# integrity, and specialist-discipline section fingerprints.
-# Run: pwsh scripts/verify.ps1
+# integrity, specialist-discipline/example fingerprints, and the shared Spec/TAV contract.
+# Run: pwsh scripts/verify.ps1 [-SpecPath <path-to-spec-driven-develop-repo>]
+
+param(
+  [string]$SpecPath = ''
+)
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
+if ($SpecPath -eq '') { $SpecPath = Join-Path (Split-Path -Parent $root) 'spec-driven-develop' }
 $script:fail = 0
 
 function Fail($msg) { Write-Host "FAIL: $msg" -ForegroundColor Red; $script:fail++ }
 function Ok($msg)   { Write-Host "OK:   $msg" -ForegroundColor Green }
+function Warn($msg) { Write-Host "WARN: $msg" -ForegroundColor Yellow }
+
+function Get-RoleBlocks([string]$text, [string]$role) {
+  $pattern = '(?ms)```markdown\s+\*\*\[' + [regex]::Escape($role) + '[^\n]*\n.*?```'
+  @([regex]::Matches($text, $pattern) | ForEach-Object { $_.Value })
+}
 
 # 1. SKILL.md frontmatter version is the single source of truth
 $skill = Get-Content SKILL.md -Raw -Encoding UTF8
@@ -33,6 +44,11 @@ foreach ($c in $checks) {
     else { Ok "$($c.file) $($c.label) = $v" }
   } else { Fail "$($c.file) $($c.label) line not found" }
 }
+
+$changelog = Get-Content 'CHANGELOG.md' -Raw -Encoding UTF8
+if ($changelog -notmatch ('(?m)^## Version ' + [regex]::Escape($skillVer) + ' \(')) {
+  Fail "CHANGELOG.md has no entry for current version $skillVer"
+} else { Ok "CHANGELOG.md records current version $skillVer" }
 
 $stateText = Get-Content 'references/templates/state.json' -Raw -Encoding UTF8
 try {
@@ -145,6 +161,58 @@ if ($null -ne $state) {
   } else { Ok 'state template carries spec-driven origin and cleanup status' }
 }
 
+$implementationGuide = Get-Content 'references/implementation-guide.md' -Raw -Encoding UTF8
+if (-not $implementationGuide.Contains('explicitly authorized cleanup')) {
+  Fail 'implementation guide lacks explicit cleanup authorization'
+} elseif (-not $implementationGuide.Contains('pnpm typecheck:TS2532') -or -not $implementationGuide.Contains('Never prefix a `by_command` key with a todo ID')) {
+  Fail 'implementation guide lacks the failure-count entry schema or command-key boundary'
+} else { Ok 'implementation guide carries cleanup authority and failure-count entry semantics' }
+
+$walkthroughSchemas = @{
+  'Thinker - Analysis' = @('Task Classification','Evidence Gathered','Analysis Summary','Hard-Bug Evidence','Test Seam','Todo List','Risks','Verification Plan')
+  'Actor - Execution' = @('Progress','Completed Steps','Diagnostic Probe Evidence','TDD Evidence','Blocked Items','Notes')
+  'Verifier - Review' = @('Diff Reviewed','Verification Items','Standards Review','Spec Review','Hard-Bug Closure','Commands Run','Failed or Skipped Commands','Issue Details','Suggested Fix','Consolidation Candidates','Review Result','Change Summary')
+}
+$failsBefore = $script:fail
+foreach ($file in 'examples/bug-fix.md','examples/refactoring.md','examples/rate-limiting.md') {
+  $text = Get-Content $file -Raw -Encoding UTF8
+  foreach ($role in $walkthroughSchemas.Keys) {
+    $blocks = @(Get-RoleBlocks $text $role)
+    if ($blocks.Count -eq 0) {
+      Fail "$file has no canonical $role block"
+      continue
+    }
+    for ($i = 0; $i -lt $blocks.Count; $i++) {
+      foreach ($heading in $walkthroughSchemas[$role]) {
+        if ($blocks[$i] -notmatch ('(?m)^### ' + [regex]::Escape($heading) + '\s*$')) {
+          Fail "$file $role block $($i + 1) missing heading '$heading'"
+        }
+      }
+    }
+  }
+}
+if ($script:fail -eq $failsBefore) { Ok 'full L1 walkthroughs carry canonical Thinker/Actor/Verifier sections' }
+
+$rateExample = Get-Content 'examples/rate-limiting.md' -Raw -Encoding UTF8
+if ($rateExample -notlike '*after explicit cleanup authorization*' -or $rateExample -notlike '*cleanup_status: awaiting_authorization*') {
+  Fail 'rate-limiting example lacks deferred-cleanup authorization semantics'
+} else { Ok 'rate-limiting example preserves state without cleanup authorization' }
+
+$strikeExample = Get-Content 'examples/two-strike-escalation.md' -Raw -Encoding UTF8
+if ($strikeExample -like '*todo-2:pnpm typecheck:TS2532*') {
+  Fail 'two-strike example still prefixes a by_command key with todo_id'
+} elseif ($strikeExample -notlike '*pnpm typecheck:TS2532*') {
+  Fail 'two-strike example lacks the canonical command blocker key'
+} else { Ok 'two-strike example uses command + normalized signature only' }
+
+$failsBefore = $script:fail
+foreach ($file in Get-ChildItem examples -Filter '*.md') {
+  $text = Get-Content $file.FullName -Raw -Encoding UTF8
+  if ($text -match '(?m)^## 变更摘要\s*$') { Fail "$($file.Name) uses Chinese final headings for an English user request" }
+  elseif ($text -notmatch '(?m)^## Summary\s*$') { Fail "$($file.Name) lacks the English Summary heading" }
+}
+if ($script:fail -eq $failsBefore) { Ok 'example final-report headings follow the English working language' }
+
 $l0 = Get-Content 'examples/l0-quick-patch.md' -Raw -Encoding UTF8
 if ($l0 -match 'HTTP client|external API|RETRY') { Fail 'L0 example still changes runtime or external-API behavior' }
 elseif ($l0 -notmatch 'documentation typo' -or $l0 -notmatch 'git diff --check') { Fail 'L0 example does not demonstrate a verified non-runtime patch' }
@@ -154,6 +222,39 @@ $exampleText = @('examples/bug-fix.md','examples/refactoring.md','examples/two-s
 if ($exampleText -match '(?m)^type:\s+project\s*$') { Fail 'examples use a memory type outside fact|rule|decision|gotcha' }
 elseif ($exampleText -notmatch 'Failed or Skipped Commands') { Fail 'examples do not demonstrate the required final-report command section' }
 else { Ok 'examples use canonical memory types and final-report command sections' }
+
+if ($changelog -notlike '*examples/pua-escalation.md*' -or $changelog -notlike '*examples/two-strike-escalation.md*' -or $changelog -notlike '*historical 3.6.0 entry remains unchanged*') {
+  Fail 'CHANGELOG.md does not document the pua-escalation -> two-strike-escalation rename without rewriting history'
+} else { Ok 'CHANGELOG.md documents the current example name while preserving historical release text' }
+
+# 6. Cross-repo handoff contract with spec-driven-develop
+$specSkillPath = Join-Path $SpecPath 'plugins/spec-driven-develop/skills/spec-driven-develop/SKILL.md'
+if (-not (Test-Path $specSkillPath)) {
+  Warn "spec-driven-develop not found at '$SpecPath' - cross-repo contract checks skipped (pass -SpecPath to enable)"
+} else {
+  $specSkill = Get-Content $specSkillPath -Raw -Encoding UTF8
+  $fallback = 'A refactor confined to one module — however messy — stays at L1 (TAV territory).'
+  if ($skill -notlike "*$fallback*" -or $specSkill -notlike "*$fallback*") {
+    Fail 'L2 fallback sentence is not verbatim-identical across repos'
+  } else { Ok 'L2 fallback sentence is verbatim-identical across repos' }
+
+  $canonicalPayload = 'Outcome, Rework, Plan returns, Unplanned dependencies, and Focused S.U.P.E.R result'
+  if ($skill -notlike "*$canonicalPayload*" -or $specSkill -notlike "*$canonicalPayload*") {
+    Fail 'execution-event payload is not canonical on both sides of the handoff'
+  } else { Ok 'execution-event payload is canonical on both sides of the handoff' }
+
+  $statePattern = '(?ms)\*\*State ownership:\*\*\s*(.*?)(?:\n---|\z)'
+  $tavStateMatch = [regex]::Match($skill, $statePattern)
+  $specStateMatch = [regex]::Match($specSkill, $statePattern)
+  if (-not $tavStateMatch.Success -or -not $specStateMatch.Success) {
+    Fail 'state ownership block missing from one side of the handoff'
+  } else {
+    $tavState = ($tavStateMatch.Groups[1].Value -replace "`r", '').Trim()
+    $specState = ($specStateMatch.Groups[1].Value -replace "`r", '').Trim()
+    if ($tavState -ne $specState) { Fail 'state ownership block differs across repos' }
+    else { Ok 'three-layer state ownership block is mirrored across repos' }
+  }
+}
 
 if ($script:fail -gt 0) { Write-Host "`n$($script:fail) check(s) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host "`nAll checks passed" -ForegroundColor Green; exit 0

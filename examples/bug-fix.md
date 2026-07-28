@@ -26,6 +26,12 @@ Phase 1 -> Analyzing
 ### Analysis Summary
 - Missing `await` on `user.save()` causes a race: the response returns before the write. The same defect exists in the admin API. Existing tests cannot catch either an incomplete write or a missed Mongoose change notification because they never read the database back.
 
+### Hard-Bug Evidence
+- Not applicable: repository evidence identifies a direct persistence defect and the API integration seam can reproduce it without diagnostic instrumentation.
+
+### Test Seam
+- The API integration tests with a post-request database re-read are the highest stable public boundary that proves persistence rather than response-only success.
+
 ### Todo List
 1. `src/api/user.ts:100` - add `await` before `user.save()`.
 2. `src/api/admin.ts:234` - add `await` before `user.save()` (same defect).
@@ -52,11 +58,20 @@ Phase 2 -> Executing
 3. Completed `tests/api/user.test.ts` - added database re-read assertion.
 4. Completed `tests/api/admin.test.ts` - added database re-read assertion.
 
+### Completed Steps
+- Todos 1-4 completed; both endpoint changes and database assertions are present in the diff.
+
+### Diagnostic Probe Evidence
+- Not applicable.
+
+### TDD Evidence
+- The new database assertions were not run RED before the implementation edits; this process gap is visible because the Verifier's first independent run remains red and blocks completion.
+
 ### Blocked Items
 - None.
 
-### Next Phase
-- Enter Verifier.
+### Notes
+- No planned deviation reported by the Actor; Verifier still determines whether the persistence proof is green.
 ```
 
 Representative edit:
@@ -89,8 +104,22 @@ Phase 3 -> Reviewing
 | Security | pass | persistence surface reviewed: test IDs are controlled, queries remain parameterized through Mongoose, and no authorization boundary changed |
 | Side effects | pass | no other call sites affected |
 
+### Standards Review
+- Status: pass
+- Repository-rule evidence: changes stay within the two endpoint and two integration-test files named by the plan; no unrelated refactor is present.
+
+### Spec Review
+- Status: fail
+- Acceptance evidence: the database re-read still returns `Old Name`, so the requested persistence behavior is not implemented even though `await` was added.
+
+### Hard-Bug Closure
+- Not applicable.
+
 ### Commands Run
 - `npm test` - FAILED: `Expected: "New Name" / Received: "Old Name"` in both new assertions.
+
+### Failed or Skipped Commands
+- `npm test` - failed on the two new persistence assertions; no command was skipped.
 
 ### Issue Details
 - `src/api/user.ts:95-100` - re-read of the endpoint shows a deep mutation under the `profile` `Schema.Types.Mixed` path. Mongoose does not automatically track this special-case mutation, so `save()` has no changed path to persist. The missing `await` was real but incomplete.
@@ -103,6 +132,11 @@ Phase 3 -> Reviewing
 
 ### Review Result
 - Return to Actor with the fix above.
+
+### Change Summary
+- Files modified: 4 (from `git diff --stat`)
+- Lines changed: +8 -2 (from `git diff --stat`)
+- Scope: incomplete persistence fix plus database-state regression assertions
 ```
 
 ## Phase 2: Actor - Execution (Iteration 2)
@@ -115,11 +149,22 @@ Phase 2 (iteration 2) -> Executing
 1. Completed `src/api/user.ts:95-100` - called `markModified('profile')` after the nested mutation and before `save()`.
 2. Completed `src/api/admin.ts:230-234` - applied the same `profile` change notification.
 
+### Completed Steps
+- Returned from the Verifier with the exact Mixed-path evidence and completed the two corrective endpoint edits.
+
+### Diagnostic Probe Evidence
+- Not applicable.
+
+### TDD Evidence
+| Slice | RED Command / Result | GREEN Command / Result |
+|:------|:---------------------|:-----------------------|
+| Nested profile persistence | `npm test` - database re-read receives `Old Name` after the incomplete fix | `npm test` - database re-read receives `New Name` after `markModified('profile')` |
+
 ### Blocked Items
 - None.
 
-### Next Phase
-- Enter Verifier.
+### Notes
+- The Verifier evidence changed the implementation detail but not the approved persistence behavior or test seam.
 ```
 
 Representative edit:
@@ -160,10 +205,27 @@ Phase 3 (iteration 2) -> Reviewing
 | Security | pass | database persistence review repeated; no injection, authorization, or sensitive-error regression found |
 | Side effects | pass | other `user.save()` call sites are untouched; no generic replacement of document saves |
 
+### Standards Review
+- Status: pass
+- Repository-rule evidence: the fix is limited to the two known `Mixed`-path endpoints and keeps the established document-save pattern.
+
+### Spec Review
+- Status: pass
+- Acceptance evidence: both database re-read assertions now observe `New Name`; response shape and unrelated call sites remain unchanged.
+
+### Hard-Bug Closure
+- Not applicable.
+
 ### Commands Run
 - `npm test` - PASS: `Tests: 5 passed, 5 total`.
 
+### Failed or Skipped Commands
+- None.
+
 ### Issue Details
+- None.
+
+### Suggested Fix
 - None.
 
 ### Consolidation Candidates
@@ -201,28 +263,28 @@ applies_to: [src/api/user.ts, src/api/admin.ts]
 ```
 
 ```markdown
-## 变更摘要
+## Summary
 - 用户嵌套资料未持久化的根因是 `profile` 为 Mongoose `Mixed` 路径，其深层修改未被自动追踪；缺失 `await` 同时存在但不足以修复问题。已在两个端点的 `save()` 前调用 `markModified('profile')` 并强化测试以校验数据库真实状态。
 
-## 涉及文件
+## Files Changed
 - `src/api/user.ts` (Modified): 更新 `Mixed` 类型的 `profile` 后标记该路径为已修改。
 - `src/api/admin.ts` (Modified): 管理端同一 `profile` 变更追踪缺陷同步修复。
 - `tests/api/user.test.ts` (Modified): 增加数据库回读断言。
 - `tests/api/admin.test.ts` (Modified): 增加数据库回读断言。
 
-## 验证结果
+## Verification
 - ✅ `npm test` passed (5 passing)
 
-## 失败或未执行的命令
+## Failed or Skipped Commands
 - None.
 
-## 剩余风险
+## Residual Risks
 - 生产环境历史丢失的更新无法恢复，建议排查错误日志。
 
-## 后续建议
+## Next Steps
 - 为其余 6 处 `user.save()` 调用补充数据库状态断言。
 
-## 知识沉淀
+## Knowledge Consolidation
 - `docs/memory/MEMORY.md` (Modified only when the surface is declared): linked the new topic entry.
 - `docs/memory/mongoose-mixed-change-tracking.md` (Added only when the surface is declared): Mongoose `Mixed` 路径的深层修改需在保存前标记为已修改。
 ```

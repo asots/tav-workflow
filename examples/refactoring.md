@@ -25,6 +25,12 @@ Phase 1 -> Analyzing
 ### Analysis Summary
 - Extract each responsibility into a private function of 20-30 lines; `processOrder` becomes a 25-line orchestrator with the same signature, so no call site changes. Existing integration tests remain the behavior contract; do not add tests that bind to private extraction details.
 
+### Hard-Bug Evidence
+- Not applicable: this is a behavior-preserving refactor with an existing deterministic integration suite, not a diagnosis task.
+
+### Test Seam
+- `tests/services/orderService.test.ts` exercises the public `processOrder` boundary and its payment/inventory effects; it is the highest stable seam and avoids coupling tests to extracted private functions.
+
 ### Todo List
 1. `src/services/orderService.ts` - extract `validateOrder` (lines 45-70).
 2. `src/services/orderService.ts` - extract `checkInventory` (71-95).
@@ -162,25 +168,25 @@ Phase 3 -> Reviewing
 ## Phase 4: Completion
 
 ```markdown
-## 变更摘要
+## Summary
 - 将 201 行的 processOrder 拆分为 7 个单一职责函数加 1 个 25 行编排器，签名不变，行为由原有集成测试保证不变。
 
-## 涉及文件
+## Files Changed
 - `src/services/orderService.ts` (Modified): 提取 7 个函数并重写编排器。
 - `tests/services/orderService.test.ts` (Modified): 在现有集成测试接缝增加 3 个公开行为回归用例。
 
-## 验证结果
+## Verification
 - ✅ `npm test -- orderService` passed (24 passing, 集成测试未修改)
 - ✅ `npm run typecheck` passed
 - ✅ `npm run lint` passed
 
-## 失败或未执行的命令
+## Failed or Skipped Commands
 - None.
 
-## 剩余风险
+## Residual Risks
 - processPayment 直接透传 Stripe 原始错误，信息可读性一般。
 
-## 后续建议
+## Next Steps
 - 如需更清晰的支付错误信息，单独立项包装 Stripe 异常。
 ```
 

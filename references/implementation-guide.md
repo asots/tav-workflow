@@ -35,13 +35,14 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 - Update `current_phase`, `completed_steps`, and `last_update` at each phase transition.
 - For hard bugs, keep `diagnosis.feedback_command`, the compact baseline result/reproduction rate, ranked hypothesis summaries, and current probe lifecycle (`planned|applied|removed|not_applicable`) recoverable. For test-first work, keep the chosen `tdd.test_seam` plus compact RED/GREEN command evidence. For review, persist separate `review_axes.standards` and `review_axes.spec` statuses and evidence pointers.
 - Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `SKILL.md` § "Failure counting semantics" — two consecutive failures of the same key triggers `[ESCALATION-REPORT]`.
+- Each map value uses the same compact entry shape: `{ "count": 2, "last_failed_at": "2026-07-28T08:00:00Z", "key_established": "iteration-1" }`. For example, `by_command["pnpm typecheck:TS2532"]` stores a gate-command failure, while `by_blocker["todo-2:missing-null-guard"]` stores a plan/structural failure. A successful comparable check removes or resets that key; a Thinker re-plan removes entries for superseded todos. Never prefix a `by_command` key with a todo ID.
 - `phase_outputs` holds compact, recoverable state: the approved plan or next action, evidence pointers, and the verification plan/results needed to resume without chat history. Never duplicate the whole Thinker/Actor/Verifier report or full logs into state; they drift and waste space. Redact secrets, credentials, authorization data, private user data, and sensitive payloads before persisting any evidence pointer or result summary.
 
 ### Staleness and cleanup
 
 - A state whose `last_update` is older than 7 days is stale: ask the user before resuming or replacing it.
 - A state describing a different task: ask the user before replacing or archiving it.
-- On completion, archive to `.tav/archive/` or delete the file - only if it belongs to the completed workflow.
+- On completion, archive to `.tav/archive/` or delete the file only when it belongs to the completed workflow and the user has explicitly authorized cleanup. Otherwise leave `current_phase: complete` with `cleanup_status: awaiting_authorization`.
 
 ### Concurrent tasks
 

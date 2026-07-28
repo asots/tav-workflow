@@ -6,7 +6,7 @@
 
 TAV（Think-Act-Verify，思考-执行-验证）是一个面向范围明确的软件变更的结构化工作流。它将分析、执行、验证三种职责分离，确保每一次非平凡的修改都基于证据、保持最小化、并在宣告完成前经过独立检查。
 
-**版本**：3.10.0
+**版本**：3.11.0
 **状态**：Stable
 
 权威规范位于 [SKILL.md](SKILL.md)。本 README 面向读者提供概览；schema、命令表、输出契约只在 skill 文件中定义一次，此处仅作引用。
@@ -49,6 +49,8 @@ TAV 工作流：
 | L1 | 跨多文件的标准 bug 修复或功能实现 | 完整的 Thinker -> Actor -> Verifier 工作流 |
 | L2 | 架构、迁移、schema、认证改造、分布式流程 | 先 `spec-driven-develop`，再对每个拆分任务应用 TAV |
 
+`L0/L1/L2` 是 TAV 按范围与风险划分的任务级别；它独立于 Spec-Driven Develop 的 `Tier 0/1/2` 交付批次调度级别，后者表示直接执行、单 Agent 委派或并行泳道。
+
 ## 核心特性
 
 - **角色分离**：只读的 Thinker、最小变更的 Actor、从 `git diff` 出发（而非 Actor 汇报）的独立 Verifier；安全敏感或返工两次的变更会升级为由独立 reviewer agent 进行验证。
@@ -60,8 +62,8 @@ TAV 工作流：
 - **原生任务跟踪**：进度映射到平台的真实任务工具（Claude Code 中为 `TaskCreate` / `TaskUpdate`）。
 - **栈感知质量门禁**：验证命令基于仓库证据选择（lockfile、`pyproject.toml`、`Cargo.toml`、`go.mod`、CI 配置）。完整表格见[验证命令选择](references/verification-commands.md)。
 - **错误恢复**：计划不匹配时返回 Thinker，门禁失败时返回 Actor，同一阻塞点失败两次触发 `[ESCALATION-REPORT]` 升级，关键安全问题阻断完成。
-- **知识沉淀**：门禁通过后，将持久化的经验教训写入项目已解析的记忆面：优先既有声明，其次原生项目记忆；仅在项目已声明或用户明确选择时才使用 `docs/memory/`。见 [SKILL.md](SKILL.md) Phase 4。
-- **Spec-driven 互操作**：在 `spec-driven-develop` 项目内，一个 TAV 循环执行一张任务卡并回写进度与遥测。见 [SKILL.md](SKILL.md) "Operating Inside a Spec-Driven Project"。
+- **知识沉淀**：门禁通过后，将持久化的经验教训写入项目已解析的记忆面：优先既有声明，其次原生项目记忆；仅在项目已声明或用户明确选择时才使用 `docs/memory/`。glossary/ADR 与 instruction 文件是按知识类型选择的目标，不参与记忆面优先级竞争。见 [SKILL.md](SKILL.md) Phase 4。
+- **Spec-driven 互操作**：在 `spec-driven-develop` 项目内，一个 TAV 循环执行一张任务卡，并向编排者返回规范化的 Outcome/Rework/Plan returns/Unplanned dependencies/Focused S.U.P.E.R execution event。见 [SKILL.md](SKILL.md) "Operating Inside a Spec-Driven Project"。
 
 ## 架构
 
@@ -82,7 +84,7 @@ Phase 3: Verifier
     |-- git diff、机器门禁、Standards/Spec 双轴审查、安全检查
     |
 Phase 4: Completion
-    |-- 知识沉淀、最终报告、状态清理/归档
+    |-- 知识沉淀、最终报告、获授权的状态清理/归档
 ```
 
 ## 状态文件
@@ -121,5 +123,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.10.0**
+**TAV Workflow v3.11.0**
 *Think-Act-Verify：基于证据的变更、最小化执行、经验证的完成。*
