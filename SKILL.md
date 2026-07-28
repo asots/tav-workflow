@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first for rewrites, migrations, architecture overhauls, or broad multi-module transformations.
-version: 3.7.0
+version: 3.8.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -87,7 +87,7 @@ Create `.tav/state.json` only when the work is likely to span sessions or needs 
 
 Never let two TAV cycles write the same state file. `current_phase`, `todo_list`, and `failure_counts` belong to one task only and must not leak across parallel work.
 
-Key state fields: `current_phase` (`thinker|actor|verifier|complete|blocked`), `task_tier` (`L0|L1|L2`), `current_risk_level` (`low|medium|high|critical`), `todo_list`, `completed_steps`, `verification_commands`, `failure_counts`, `last_update`. Read `references/templates/state.json` before creating the file for the first time; keep field names exactly as the template defines them.
+Key state fields: `current_phase` (`thinker|actor|verifier|complete|blocked`), `task_tier` (`L0|L1|L2`), `current_risk_level` (`low|medium|high|critical`), `todo_list`, `completed_steps`, `verification_commands`, `diagnosis`, `tdd`, `review_axes`, `failure_counts`, `last_update`. Read `references/templates/state.json` before creating the file for the first time; keep field names exactly as the template defines them. Store compact commands, results, and evidence pointers — never full logs or duplicated phase reports.
 
 Use the platform's native task tracker when available. In Claude Code, map workflow progress to `TaskCreate` and `TaskUpdate`. Do not assume `TodoWrite` or `TodoUpdate` exists.
 
@@ -117,6 +117,29 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 - Do not invent file paths, commands, package managers, or test scripts.
 - Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
 
+### Hard-bug diagnosis branch
+
+Use this branch when the failure resists an obvious first-pass explanation, is intermittent, is a performance regression, or the user explicitly asks for diagnosis/debugging. Ordinary scoped fixes keep the standard Thinker flow.
+
+1. **Establish the feedback loop before theorizing.** Identify and run one existing command, script, trace replay, or debugger/REPL path that exercises the user's exact symptom. It must be red-capable, deterministic (or have a measured high reproduction rate for a flaky bug), as fast as practical, and agent-runnable. If a new harness or source instrumentation is required, design it here and use the diagnostic Actor micro-loop below instead of editing during Thinker.
+2. **Reproduce and minimize.** Confirm the loop catches the reported failure, then remove inputs, callers, configuration, data, and steps one at a time until every remaining element is load-bearing.
+3. **Rank falsifiable hypotheses.** Write 3-5 candidate causes before testing them. Each hypothesis states a prediction that one targeted probe can confirm or falsify. Share the ranking as a non-blocking checkpoint when user domain knowledge could materially reorder it.
+4. **Probe one variable at a time.** Prefer read-only debugger/REPL inspection. When a file edit is required, specify one falsifying prediction, the exact probe files, a unique removable tag, and a cleanup check for the diagnostic Actor. Performance work starts from a measured baseline, profiler/query plan, or bisection signal rather than broad logging.
+5. **Plan the regression proof at the correct seam.** The test must exercise the real bug pattern through a stable public boundary. If no correct seam exists, record that architecture limitation instead of adding a shallow test that cannot catch the original failure.
+6. **Close the loop.** After diagnosis returns to normal TAV, the Actor applies the minimal fix; the Verifier reruns both the minimized regression proof and the original feedback command, and confirms all temporary instrumentation or harnesses are removed.
+
+#### Diagnostic Actor micro-loop
+
+This micro-loop preserves the Thinker read-only boundary when diagnosis needs temporary file changes:
+
+1. Thinker records the probe's prediction, exact files, command, unique tag, and cleanup check. The probe must be disposable and narrower than the eventual fix.
+2. A diagnostic Actor captures the pre-probe VCS status/diff for the named paths (including whether a path was untracked or absent), applies only that probe, runs the named feedback command, captures the observed result, removes every probe edit, and proves those paths match the pre-probe baseline with the unique tag absent.
+3. Control returns to Thinker, which updates the hypothesis ranking from the observed signal. Repeat only for a materially different prediction.
+
+The diagnostic Actor does not implement the fix or retain a regression test. Persistent tests and product changes belong to the normal Actor after the Thinker plan is complete. If baseline restoration cannot be proven, stop and report the residual diagnostic delta without touching pre-existing user changes.
+
+If no usable feedback loop can be built, stop speculative diagnosis. Report the attempts and exact limitation, then request the missing environment access, captured artifact, or permission for temporary instrumentation.
+
 ### Required Thinker output
 
 ```markdown
@@ -126,6 +149,12 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 
 **analysis summary**:
 - Root cause or implementation approach.
+
+**hard-bug evidence** (when applicable):
+- Feedback command + first observed result/reproduction rate.
+- Ranked hypotheses with one falsifiable prediction each.
+- Diagnostic probe plan/status: files, unique tag, pre-probe baseline, cleanup check, observed signal.
+- Test seam for the planned regression proof, or explicit architecture limitation.
 
 **todo list**:
 1. `path/to/file` - exact planned change.
@@ -163,12 +192,29 @@ Actor executes the approved todo list. Do not perform unrelated refactors.
 - Do not add comments, abstractions, dependencies, or formatting changes unless they are part of the plan.
 - Do not silently improvise; deviations require a return to Thinker.
 
+### TDD execution branch
+
+Use test-driven execution when the Thinker plan requires new or strengthened automated tests, when the hard-bug branch produced a regression proof, or when the user explicitly requests test-first work.
+
+- The Thinker names the **test seam**: the highest stable public boundary that can prove the required behavior. Prefer an existing seam. Ask the user only when competing seams materially change scope, architecture, or cost; otherwise choose from repository evidence and record the decision.
+- Work in one vertical behavior slice at a time: write one test for externally observable behavior, run it red, add only enough implementation to make it green, then repeat.
+- Expected values must come from an independent source of truth such as the confirmed requirement, a worked example, or known-good literal — never recompute the implementation inside the assertion.
+- Avoid implementation-coupled mocks/private-method tests and horizontal "all tests first, all implementation later" batches.
+- Refactor only after the slice is green and only when the refactor is already within the approved todo list; an unplanned structural need returns to Thinker.
+- Record the red and green command evidence in progress so the Verifier can rerun it independently.
+
 ### Required Actor output
 
 ```markdown
 **progress**:
 1. Completed `path/to/file` - change made.
 2. Completed `path/to/file` - change made.
+
+**diagnostic probe evidence** (when this output is for a probe micro-step):
+- Prediction, command/result, unique tag, cleanup command, and proof that probe paths returned to their pre-probe baseline.
+
+**TDD evidence** (when applicable):
+- Slice: RED command/result → GREEN command/result.
 
 **blocked items**:
 - None, or exact blocker with evidence.
@@ -190,9 +236,10 @@ Verifier checks the change independently. Do not rely on Actor's summary.
 3. Treat Thinker's `verification plan` as candidate commands; confirm each still matches the project stack (re-read the evidence if unsure), run them, and add any stack-appropriate checks Thinker missed. Do not silently re-derive the whole list from scratch.
 4. Add stack-appropriate checks if Thinker missed obvious project commands.
 5. Check security-sensitive surfaces when relevant.
-6. Verify behavior, not just file presence.
-7. Record pass/fail results in native task tracking (and `.tav/state.json` if it exists).
-8. Flag knowledge consolidation candidates observed during review — rework lessons, non-obvious root causes, undocumented project commands — for evaluation in Phase 4.
+6. Perform the two-axis review below after machine checks; keep Standards and Spec findings separate.
+7. Verify behavior, not just file presence.
+8. Record pass/fail results in native task tracking (and `.tav/state.json` if it exists).
+9. Flag knowledge consolidation candidates observed during review — rework lessons, non-obvious root causes, undocumented project commands — for evaluation in Phase 4.
 
 ### Stack-aware verification command selection
 
@@ -231,6 +278,15 @@ When the change touches configuration or infrastructure-as-code rather than appl
 
 Never run `terraform apply` or `kubectl apply` as a verification step during a TAV cycle — those mutate external state. Validation and planning only; record the command as skipped if no safe variant exists.
 
+### Two-axis review
+
+Machine gates prove that configured checks ran; they do not prove that the right change was made. Review the actual diff through two independent axes:
+
+1. **Standards** — compare the diff with repository instruction and coding-standard sources. Project rules override generic heuristics. Where tooling does not already enforce the issue, look for judgment-call smells such as unclear naming, duplicated logic, misplaced responsibility, data clumps, repeated conditionals, shotgun/divergent change, speculative generality, long navigation chains, delegation-only middle layers, or inheritance that does not fit. Label heuristics as possible smells, not hard violations.
+2. **Spec** — compare the diff with the task definition and acceptance criteria. Identify requested behavior that is missing or partial, behavior added without authorization, and implementation that appears present but does not satisfy the requirement.
+
+Do not merge the axes into one score: a change can satisfy standards while implementing the wrong thing, or satisfy the spec while violating project rules. When independent reviewer agents are available and their cold-start cost is justified, the axes may run in parallel; otherwise the Verifier performs two explicit passes. This review supplements, never replaces, tests, type/lint checks, compatibility review, security review, and configuration/IaC validation.
+
 ### Security-sensitive branch
 
 If the change touches authentication, authorization, user input, database queries, file system paths, external APIs, cryptography, payments, or secrets:
@@ -249,13 +305,21 @@ When the change touches a security-sensitive surface, or the same task has accum
 **verification items**:
 | Check | Status | Evidence |
 |-------|--------|----------|
-| Requirement met | pass/fail/warn | ... |
 | Syntax/type safety | pass/fail/warn | ... |
 | Tests/lint | pass/fail/warn | ... |
 | Compatibility | pass/fail/warn | ... |
 | Edge cases | pass/fail/warn | ... |
 | Security | pass/fail/warn | ... |
 | Side effects | pass/fail/warn | ... |
+
+**Standards review**:
+- pass/fail/warn — repository-rule or heuristic evidence.
+
+**Spec review**:
+- pass/fail/warn — acceptance evidence for missing/partial behavior, scope creep, or semantic mismatch.
+
+**hard-bug closure** (when applicable):
+- Minimized regression proof, original feedback command, tag search, and probe-path baseline-restoration evidence.
 
 **result**:
 - Pass and enter Complete, or return to Actor/Thinker with exact fixes.
@@ -424,6 +488,7 @@ Role names are responsibilities, not hard dependencies on exact agent names.
 | TAV role | Preferred implementation | Fallback |
 |----------|--------------------------|----------|
 | Thinker | Native plan mode, planning/exploration agent, read-only tools | Main agent read-only analysis |
+| Diagnostic Actor | Actor role executing one disposable probe and cleanup micro-step | Main agent with the recorded probe contract |
 | Actor | Coding/execution agent or main agent edits | Main agent with strict todo list |
 | Verifier | Reviewer agent, test tools, security reviewer when needed | Main agent independent verification |
 | Progress tracking | `TaskCreate` / `TaskUpdate` / native todo tool | `.tav/state.json` only |

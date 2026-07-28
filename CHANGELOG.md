@@ -1,5 +1,17 @@
 # TAV Workflow Changelog
 
+## Version 3.8.0 (2026-07-28)
+
+### Specialist engineering disciplines
+
+- **Added**: Hard-bug diagnosis branch in Thinker — establish a red-capable feedback loop, minimize the reproduction, rank falsifiable hypotheses, instrument one variable at a time, and close with both regression and original-scenario proof.
+- **Fixed**: File-changing diagnostic probes now run through a disposable diagnostic Actor micro-loop, preserving the Thinker read-only boundary and requiring same-step restoration to a path-scoped pre-probe VCS baseline without touching existing user changes.
+- **Added**: TDD execution branch in Actor — test at the highest stable planned seam, advance one vertical behavior slice through red-green, and reject implementation-coupled or tautological tests.
+- **Added**: Two-axis Verifier review — evaluate repository Standards and task Spec separately after machine gates so one axis cannot mask failure in the other.
+- **Changed**: Thinker, Actor, Verifier, and state templates now persist compact feedback-loop, hypothesis, test-seam, RED/GREEN, and separate Standards/Spec evidence for cross-session recovery.
+- **Changed**: `references/implementation-guide.md` now owns the detailed operating mechanics for the three disciplines; the core `SKILL.md` remains the authoritative contract.
+- **Added**: Documentation self-check fingerprints for the new sections. Design concepts were adapted for TAV's authorization and state model from `asots/mattpocock-skills` snapshot `ed37663cc5fbef691ddfecd080dff42f7e7e350d`.
+
 ## Version 3.7.0 (2026-07-23)
 
 ### Delivery-batch alignment (behavior fix)

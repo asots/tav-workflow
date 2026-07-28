@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.7.0
+**Version**: 3.8.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -52,6 +52,9 @@ TAV workflow:
 ## Key Features
 
 - **Role separation**: read-only Thinker, minimal-change Actor, independent Verifier that starts from `git diff`, not from the Actor's summary; security-sensitive or twice-reworked changes escalate to an independent reviewer agent.
+- **Hard-bug diagnosis**: difficult, intermittent, and performance failures first get a red-capable feedback loop, minimized reproduction, and falsifiable hypotheses. When a probe needs file edits, a disposable diagnostic Actor applies and removes it before control returns to the read-only Thinker.
+- **Planned-seam TDD**: behavior changes advance one vertical red-green slice at a time through the highest stable public seam selected during Thinker analysis.
+- **Two-axis review**: after machine gates, Verifier reports repository Standards and task Spec findings separately so correctness on one axis cannot hide failure on the other.
 - **State persistence**: `.tav/state.json` enables resuming interrupted L1 work; states older than 7 days are treated as stale. See [SKILL.md](SKILL.md) Phase 0 for the schema and [references/templates/state.json](references/templates/state.json) for the full template.
 - **Native task tracking**: progress maps to the platform's real task tools (in Claude Code: `TaskCreate` / `TaskUpdate`).
 - **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [SKILL.md](SKILL.md) Phase 3.
@@ -68,13 +71,14 @@ Phase 0: Continuity Check (L1 only)
     |-- load `.tav/state.json` when relevant and fresh
     |
 Phase 1: Thinker
-    |-- evidence, diagnosis, todo list, risks, verification plan
+    |-- evidence, diagnosis, hard-bug feedback loop when needed
+    |-- todo list, risks, test seams, verification plan
     |
 Phase 2: Actor
-    |-- minimal planned edits only
+    |-- minimal planned edits; vertical red-green slices when required
     |
 Phase 3: Verifier
-    |-- git diff review, tests/lint/typecheck, security checks
+    |-- git diff, machine gates, Standards/Spec review, security checks
     |
 Phase 4: Completion
     |-- knowledge consolidation, final report, state cleanup/archive
@@ -115,5 +119,5 @@ MIT
 
 ---
 
-**TAV Workflow v3.7.0**
+**TAV Workflow v3.8.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

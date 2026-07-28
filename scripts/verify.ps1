@@ -1,6 +1,7 @@
 #requires -Version 5.1
 # TAV Workflow documentation self-check.
-# Verifies version consistency (single source = SKILL.md frontmatter) and internal link integrity.
+# Verifies version consistency (single source = SKILL.md frontmatter), internal link
+# integrity, and specialist-discipline section fingerprints.
 # Run: pwsh scripts/verify.ps1
 
 $ErrorActionPreference = 'Stop'
@@ -33,6 +34,15 @@ foreach ($c in $checks) {
   } else { Fail "$($c.file) $($c.label) line not found" }
 }
 
+$stateText = Get-Content 'references/templates/state.json' -Raw -Encoding UTF8
+try {
+  $state = $stateText | ConvertFrom-Json
+  Ok 'references/templates/state.json is valid JSON'
+} catch {
+  Fail "references/templates/state.json is invalid JSON: $($_.Exception.Message)"
+  $state = $null
+}
+
 # 2b. Example snippets that embed state JSON must not drift from the skill version
 foreach ($example in Get-ChildItem examples -Filter '*.md') {
   $t = Get-Content $example.FullName -Raw -Encoding UTF8
@@ -63,6 +73,45 @@ foreach ($req in 'references/templates/state.json','references/templates/thinker
   if (-not (Test-Path $req)) { Fail "missing referenced file: $req" }
 }
 if ($script:fail -eq $failsBefore) { Ok "referenced files exist" }
+
+# 5. Specialist discipline contracts must remain present in their canonical surfaces
+$semanticChecks = @(
+  @{ file='SKILL.md'; pat='(?m)^### Hard-bug diagnosis branch\s*$'; label='hard-bug diagnosis branch' },
+  @{ file='SKILL.md'; pat='(?m)^#### Diagnostic Actor micro-loop\s*$'; label='diagnostic Actor micro-loop' },
+  @{ file='SKILL.md'; pat='(?m)^### TDD execution branch\s*$'; label='TDD execution branch' },
+  @{ file='SKILL.md'; pat='(?m)^### Two-axis review\s*$'; label='two-axis review' },
+  @{ file='references/implementation-guide.md'; pat='(?m)^#### Hard-bug diagnostic mechanics\s*$'; label='hard-bug mechanics' },
+  @{ file='references/implementation-guide.md'; pat='(?m)^#### Test-driven slice mechanics\s*$'; label='TDD mechanics' },
+  @{ file='references/implementation-guide.md'; pat='(?m)^#### Two-axis review mechanics\s*$'; label='two-axis mechanics' },
+  @{ file='references/templates/thinker-output.md'; pat='(?m)^### Hard-Bug Evidence\s*$'; label='Thinker hard-bug evidence fields' },
+  @{ file='references/templates/thinker-output.md'; pat='(?m)^### Test Seam\s*$'; label='Thinker test seam field' },
+  @{ file='references/templates/actor-output.md'; pat='(?m)^### Diagnostic Probe Evidence\s*$'; label='Actor diagnostic probe evidence' },
+  @{ file='references/templates/actor-output.md'; pat='(?m)^### TDD Evidence\s*$'; label='Actor RED/GREEN evidence' },
+  @{ file='references/templates/verifier-output.md'; pat='(?m)^### Standards Review\s*$'; label='Verifier Standards axis' },
+  @{ file='references/templates/verifier-output.md'; pat='(?m)^### Spec Review\s*$'; label='Verifier Spec axis' },
+  @{ file='references/templates/verifier-output.md'; pat='(?m)^### Hard-Bug Closure\s*$'; label='Verifier hard-bug closure evidence' },
+  @{ file='README.md'; pat='Hard-bug diagnosis'; label='English README discipline summary' },
+  @{ file='README.zh-CN.md'; pat='困难故障诊断'; label='Chinese README discipline summary' }
+)
+foreach ($c in $semanticChecks) {
+  $t = Get-Content $c.file -Raw -Encoding UTF8
+  if ($t -match $c.pat) { Ok "$($c.file) carries $($c.label)" }
+  else { Fail "$($c.file) missing $($c.label)" }
+}
+
+if ($skill -notlike '*Thinker is read-only*' -or $skill -notlike '*pre-probe VCS status/diff*' -or $skill -notlike '*without touching pre-existing user changes*') {
+  Fail 'SKILL.md does not preserve the read-only Thinker -> disposable diagnostic Actor -> Thinker loop'
+} else { Ok 'SKILL.md preserves the diagnostic probe boundary and cleanup proof' }
+
+if ($null -ne $state) {
+  $missingStateFields = @()
+  foreach ($field in 'diagnosis', 'tdd', 'review_axes') {
+    if ($null -eq $state.PSObject.Properties[$field]) { $missingStateFields += $field }
+  }
+  if ($missingStateFields.Count -gt 0) { Fail "state template missing recovery fields: $($missingStateFields -join ', ')" }
+  elseif ($null -eq $state.review_axes.standards -or $null -eq $state.review_axes.spec) { Fail 'state template does not keep Standards and Spec review axes separate' }
+  else { Ok 'state template carries diagnosis, TDD, and separate review-axis recovery fields' }
+}
 
 if ($script:fail -gt 0) { Write-Host "`n$($script:fail) check(s) FAILED" -ForegroundColor Red; exit 1 }
 Write-Host "`nAll checks passed" -ForegroundColor Green; exit 0

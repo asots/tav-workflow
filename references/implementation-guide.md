@@ -33,6 +33,7 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 ### Updates
 
 - Update `current_phase`, `completed_steps`, and `last_update` at each phase transition.
+- For hard bugs, keep `diagnosis.feedback_command`, the compact baseline result/reproduction rate, ranked hypothesis summaries, and current probe lifecycle (`planned|applied|removed|not_applicable`) recoverable. For test-first work, keep the chosen `tdd.test_seam` plus compact RED/GREEN command evidence. For review, persist separate `review_axes.standards` and `review_axes.spec` statuses and evidence pointers.
 - Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `SKILL.md` § "Failure counting semantics" — two consecutive failures of the same key triggers `[PUA-REPORT]`.
 - `phase_outputs` holds status plus a short pointer/summary only (e.g. `thinker.status`, an evidence count) — the authoritative phase output is the templated block produced in the session, not a full copy in state. Never duplicate the whole Thinker/Actor/Verifier output into state; it drifts and wastes space.
 
@@ -63,11 +64,30 @@ Report only measurable facts:
 - Each todo item carries: target file or symbol, specific action, risk level, expected verification evidence.
 - Output contract: `references/templates/thinker-output.md`.
 
+#### Hard-bug diagnostic mechanics
+
+- Store the feedback-loop command and its first observed result in `evidence gathered`; carry the same command into the verification plan and `diagnosis.feedback_command` so the Verifier reruns the identical signal.
+- Treat a flaky reproduction rate as measured evidence. Record the loop count and observed failures before and after tightening rather than describing it as "sometimes".
+- Minimize one dimension at a time and rerun after each reduction. The minimized case becomes the regression-test input when a correct seam exists.
+- Hypotheses belong in the hard-bug evidence block, ranked with one falsifiable prediction each. A file-changing probe enters the diagnostic Actor micro-loop only after it maps to one prediction.
+- The probe contract names exact files, one unique tag, the feedback command, and a cleanup check. The diagnostic Actor first records each probe path's VCS status/diff (including untracked or absent paths), applies the probe, captures the result, removes it, then proves the paths returned to that baseline and the tag is absent. It never retains a test or implements the fix.
+- If cleanup fails, remain blocked in the probe micro-loop. Do not let temporary instrumentation leak into the normal Actor diff.
+- For performance work, record the baseline metric and measurement command before proposing a fix.
+
 ### Actor
 
 - Actor may read target files or snippets when required by the edit mechanism or to confirm exact context. Actor must not perform new requirement discovery.
+- A diagnostic Actor is the same write-capable role under a narrower temporary contract. It may change only the named probe files, must remove all probe edits in the same micro-step, and always returns to Thinker rather than Verifier.
 - Any structural mismatch between plan and code returns to Thinker with evidence.
 - Output contract: `references/templates/actor-output.md`.
+
+#### Test-driven slice mechanics
+
+- Keep the red-green record compact: test/seam, red command result, minimal implementation, green command result.
+- A vertical slice proves one externally visible capability through its public seam. Do not batch unrelated cases merely because they share a file.
+- Mocks are acceptable at true external boundaries; do not mock the internal collaboration whose behavior the test is supposed to prove.
+- If a test passes before implementation, stop: either the behavior already exists, the assertion is insensitive, or the wrong seam was selected. Return to Thinker when the task definition must change.
+- If the planned seam cannot reproduce a hard bug's real caller pattern, do not force a shallow test. Return with the architecture evidence.
 
 ### Verifier
 
@@ -76,6 +96,14 @@ Report only measurable facts:
 - Do not claim a check passed unless it ran and succeeded. Record unavailable commands under skipped checks.
 - Flag consolidation candidates while reviewing — rework lessons and non-obvious root causes surface here, not in Phase 4. Evaluation and capture happen in Phase 4 against the signals in `SKILL.md`.
 - Output contract: `references/templates/verifier-output.md`.
+
+#### Two-axis review mechanics
+
+- Run configured machine gates first so the review does not spend judgment on failures tooling already reports precisely.
+- Standards evidence cites the repository rule or changed hunk. Generic smell findings are explicitly labeled heuristic and never override a documented project convention.
+- Spec evidence cites the task definition or acceptance criterion and the changed hunk or missing behavior. Report missing/partial work, unauthorized scope, and semantically wrong implementations separately.
+- Preserve the separation with explicit `Standards Review` and `Spec Review` sections in the Verifier output; do not hide either axis inside a generic verification row.
+- For hard bugs, rerun both the minimized regression proof and the original feedback loop. Search for the instrumentation tag and verify that every diagnostic probe/harness was removed; any persistent regression proof must be a separately planned test in the normal Actor diff, never retained diagnostic residue.
 
 ## Knowledge Consolidation
 

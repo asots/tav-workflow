@@ -9,13 +9,29 @@ Phase 3 -> Reviewing
 
 | Check | Status | Evidence |
 |-------|--------|----------|
-| Requirement met | pass/fail/warn | ... |
 | Syntax/type safety | pass/fail/warn | ... |
 | Tests/lint | pass/fail/warn | ... |
 | Compatibility | pass/fail/warn | ... |
 | Edge cases | pass/fail/warn | ... |
 | Security | pass/fail/warn | ... |
 | Side effects | pass/fail/warn | ... |
+
+### Standards Review
+
+- Status: pass / fail / warn
+- Repository-rule evidence or explicitly labeled heuristic finding: ...
+
+### Spec Review
+
+- Status: pass / fail / warn
+- Acceptance evidence for missing/partial behavior, scope creep, or semantic mismatch: ...
+
+### Hard-Bug Closure
+
+<!-- Use when the hard-bug branch applies; otherwise write Not applicable. -->
+- Minimized regression proof: `command` - result.
+- Original feedback command: `command` - result.
+- Diagnostic residue check: tag search plus proof that named probe paths match their pre-probe VCS baseline.
 
 ### Commands Run
 
@@ -39,7 +55,7 @@ Phase 3 -> Reviewing
 
 ### Review Result
 
-- Pass and enter Phase 4, or return to Actor/Thinker with exact reason.
+- Pass only when machine gates and both Standards/Spec axes permit completion; otherwise return to Actor/Thinker with exact reason.
 
 ### Change Summary
 

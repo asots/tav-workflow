@@ -1,5 +1,5 @@
 {
-  "version": "3.7.0",
+  "version": "3.8.0",
   "task_id": "tav-example-task",
   "user_request": "Example user request",
   "task_tier": "L1",
@@ -26,6 +26,35 @@
       "status": "pending"
     }
   ],
+  "diagnosis": {
+    "feedback_command": null,
+    "baseline_result": null,
+    "reproduction_rate": null,
+    "ranked_hypotheses": [],
+    "probe": {
+      "prediction": null,
+      "affected_files": [],
+      "unique_tag": null,
+      "status": "not_applicable",
+      "cleanup_check": null,
+      "observed_signal": null
+    }
+  },
+  "tdd": {
+    "test_seam": null,
+    "red_evidence": [],
+    "green_evidence": []
+  },
+  "review_axes": {
+    "standards": {
+      "status": "pending",
+      "evidence": []
+    },
+    "spec": {
+      "status": "pending",
+      "evidence": []
+    }
+  },
   "failure_counts": {
     "by_blocker": {},
     "by_command": {}
