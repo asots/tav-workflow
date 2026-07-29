@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
-version: 3.11.0
+version: 3.12.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -30,7 +30,7 @@ Use this skill to prevent unplanned edits, hidden assumptions, and unverified co
 ### Do not use this skill for
 
 - Pure read-only explanations or repository searches.
-- Full-project rewrites, migrations, framework rebuilds, schema overhauls, or broad transformations. Use `spec-driven-develop` first, then apply TAV to each scoped task.
+- Full-project rewrites, migrations, framework rebuilds, schema overhauls, or broad transformations that satisfy at least two L2 escalation signals below. Use `spec-driven-develop` first, then apply TAV to each scoped task.
 
 ---
 
@@ -42,7 +42,9 @@ Choose the smallest workflow that is still safe.
 |------|-------|-------------------|
 | L0 | Micro change, localized single-file patch, simple config value | Lightweight TAV in a single pass: cite evidence, edit, run a baseline check. No state file, no templated phase outputs. |
 | L1 | Standard bug fix or feature touching multiple files | Full TAV: Thinker plan, Actor implementation, quality gates, Verifier review. |
-| L2 | Architecture, migration, auth overhaul, database schema, distributed flow | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV. |
+| L2 | Work satisfying at least two L2 escalation signals below; common examples include broad architecture, migration, auth, schema, or distributed-flow overhauls | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV. |
+
+`L0/L1/L2` is the TAV task tier for scope and risk. It is independent from Spec-Driven Develop's `Tier 0/1/2` delivery-batch dispatch tier for direct, delegated, or parallel execution.
 
 ### L0 vs L1 boundary
 
@@ -66,7 +68,7 @@ Keep this list in sync with `spec-driven-develop` § "Escalation Signals" — bo
 
 A refactor confined to one module — however messy — stays at L1 (TAV territory).
 
-When unsure, choose the higher tier.
+When unsure between L0 and L1, choose L1. Do not choose L2 unless at least two escalation signals hold.
 
 ---
 
@@ -97,13 +99,15 @@ For L1 tasks, check for `.tav/state.json` in the target project root before any 
 - If it describes a different task, ask the user before replacing or archiving it.
 - If it does not exist, start fresh.
 
-Also check for `docs/progress/MASTER.md` in the target project. If it exists and the current task belongs to that plan, this TAV cycle is operating inside a `spec-driven-develop` project: follow "Operating Inside a Spec-Driven Project" below for task intake, write-back, and state ownership.
+Also check for `docs/progress/MASTER.md` in the target project. If it contains the exact `**Workflow State**: archived` marker, it is a Spec-Driven tombstone rather than an active plan: when `Pending Operations` is `none`, do not enter spec-driven task mode; when pending operations are listed, return the archive pointer and exact next action to the Spec-Driven orchestrator instead of starting or resuming a TAV task. Otherwise, if MASTER exists and the current task belongs to that active plan, follow "Operating Inside a Spec-Driven Project" below for task intake, write-back, and state ownership.
+
+When a resumable TAV state has a non-null `origin.spec_run_id`, confirm that its run ID, task-card ID, delivery-batch ID, and rollback boundary still match the active MASTER/task card before resuming. A mismatch is different-task evidence: ask before replacing or archiving the state; never silently attach it to another plan.
 
 Create `.tav/state.json` only when the work is likely to span sessions or needs multiple Actor-Verifier iterations. For ordinary single-session L1 tasks, the platform's native task tracker is sufficient.
 
 Never let two TAV cycles write the same state file. `current_phase`, `todo_list`, and `failure_counts` belong to one task only and must not leak across parallel work.
 
-Key state fields: `current_phase` (`thinker|actor|verifier|complete|blocked`), `task_tier` (`L0|L1|L2`), `current_risk_level` (`low|medium|high|critical`), `todo_list`, `completed_steps`, `verification_commands`, `diagnosis`, `tdd`, `review_axes`, `failure_counts`, `last_update`. Read `references/templates/state.json` before creating the file for the first time; keep field names exactly as the template defines them. Store compact commands, results, and evidence pointers — never full logs or duplicated phase reports.
+Key state fields: `current_phase` (`thinker|actor|verifier|complete|blocked`), `task_tier` (`L0|L1|L2`), `origin`, `cleanup_status`, `current_risk_level` (`low|medium|high|critical`), `todo_list`, `completed_steps`, `verification_commands`, `diagnosis`, `tdd`, `review_axes`, `failure_counts`, `last_update`. Read `references/templates/state.json` before creating the file for the first time; keep field names exactly as the template defines them. Store compact commands, results, and evidence pointers — never full logs or duplicated phase reports.
 
 Use the platform's native task tracker when available. In Claude Code, map workflow progress to `TaskCreate` and `TaskUpdate`. Do not assume `TodoWrite` or `TodoUpdate` exists.
 
@@ -130,7 +134,7 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 - Redact secrets, credentials, cookies, authorization headers, connection strings, private user data, and sensitive payloads before placing evidence in state, reports, memory, or remote trackers. Keep full logs only in an approved local location and cite a compact pointer.
 - Prefer targeted reads and searches over broad file dumps.
 - If the project has a memory index (`docs/memory/MEMORY.md`), read **only the index lines** (one hook per entry) and shortlist entries whose hook mentions the task's files, modules, or topic. Open only the shortlisted entry files, then use their `applies_to`/`tags` frontmatter to confirm relevance and discard mismatches — previously captured knowledge is first-class evidence, but loading every entry wastes context. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
-- If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution and decision recording route through the `domain-modeling` skill when available (write targets in Phase 4).
+- If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution and decision recording route through the `domain-modeling` skill when available (write targets in Phase 4). When it is unavailable, apply the same evidence-first terminology challenge directly and return any confirmed glossary/ADR write-back candidate for Phase 4.
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
 - Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
@@ -385,15 +389,19 @@ Never reset a counter to avoid escalation. If the same root cause keeps surfacin
 
 ## Operating Inside a Spec-Driven Project
 
-When `docs/progress/MASTER.md` exists and the current task comes from a `spec-driven-develop` plan, one TAV cycle executes exactly one task card, while the enclosing delivery batch owns branches, integration validation, and the single batch PR. This is the execution half of the Handoff Contract defined in `spec-driven-develop` § "Boundary with TAV" — keep both sides in sync.
+When an active (non-tombstone) `docs/progress/MASTER.md` exists and the current task comes from a `spec-driven-develop` plan, one TAV cycle executes exactly one task card, while the enclosing delivery batch owns branches, integration validation, and the single batch PR. Spec Phases 0-6 and TAV Phases 0-4 are independent numbering systems. This is the execution half of the Handoff Contract defined in `spec-driven-develop` § "Boundary with TAV" — keep both sides in sync.
+
+**Handoff contract ID**: `spec-tav/v1` (mirrors the canonical Spec-Driven contract).
 
 **Task intake (Thinker):**
 
 - Take the task definition from the pending GitHub Issue or phase-file entry, not from a re-interpretation of the original user request.
-- Treat the task card's acceptance criteria as the baseline of the verification plan; add stack-appropriate gates on top.
+- Treat the task card's acceptance criteria and explicit test expectation as the baseline of the verification plan; add stack-appropriate gates on top.
 - Treat the task card's S.U.P.E.R design drivers as additional Verifier check items.
-- Treat the task card's dependencies, delivery shape, and rollback boundary as fixed execution constraints. If a LOCAL_ONLY entry lacks them, return the incomplete task-card evidence to the orchestrator instead of inferring them from the original user request.
+- Treat the task card's relevant/affected files and dependencies as starting points for Thinker evidence gathering, not as permission to skip affected callers or checks.
+- Treat the task card's delivery-batch ID, delivery shape, and rollback boundary as fixed execution constraints. If a LOCAL_ONLY entry lacks them, return the incomplete task-card evidence to the orchestrator instead of inferring them from the original user request.
 - Treat the task card's memory/governance impact field as pre-declared candidates for Phase 4 knowledge consolidation.
+- If `.tav/state.json` is created, populate `origin.spec_run_id`, `origin.task_card_id`, `origin.delivery_batch_id`, and `origin.rollback_boundary` from the active MASTER and task card; standalone TAV cycles leave these fields null.
 
 **Completion write-back (after Verifier passes):**
 

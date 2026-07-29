@@ -1,5 +1,14 @@
 # TAV Workflow Changelog
 
+## Version 3.12.0 (2026-07-29)
+
+### Spec-origin recovery and routing closure
+
+- **Fixed**: Phase 0 distinguishes archived Spec tombstones from active plans and validates resumable state origin before attaching it to a run.
+- **Fixed**: The `spec-tav/v1` task intake now mirrors test expectations, affected-file evidence starts, delivery-batch identity, rollback boundaries, and state-origin population.
+- **Clarified**: L2 still requires two escalation signals; TAV task tiers, Spec dispatch tiers, and the two workflows' phase numbers are explicitly independent.
+- **Added**: Standalone domain-language conflicts retain an evidence-first fallback when the optional `domain-modeling` skill is unavailable.
+
 ## Version 3.11.0 (2026-07-28)
 
 ### Canonical outputs and interop alignment

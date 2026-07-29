@@ -29,6 +29,7 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 1. Read `references/templates/state.json`.
 2. Copy the schema exactly - snake_case field names, lowercase phase enums (`thinker|actor|verifier|complete|blocked`).
 3. Fill `task_id` as `tav-YYYYMMDD-HHMMSS`, set `start_time` and `last_update` to the current UTC time.
+4. In a Spec-Driven project, copy the immutable workflow run ID, task-card/Issue ID, delivery-batch ID, and rollback boundary into `origin`. For standalone TAV work, leave every `origin` field null.
 
 ### Updates
 
@@ -42,6 +43,8 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 
 - A state whose `last_update` is older than 7 days is stale: ask the user before resuming or replacing it.
 - A state describing a different task: ask the user before replacing or archiving it.
+- A non-null `origin.spec_run_id` must match the active non-tombstone MASTER and task card before resume. Treat any run/task/batch/rollback mismatch as different-task evidence.
+- A MASTER containing `**Workflow State**: archived` is a tombstone, not an active plan. `Pending Operations: none` means run standalone/fresh; listed operations return to the Spec-Driven orchestrator with the archive pointer and next action.
 - On completion, archive to `.tav/archive/` or delete the file only when it belongs to the completed workflow and the user has explicitly authorized cleanup. Otherwise leave `current_phase: complete` with `cleanup_status: awaiting_authorization`.
 
 ### Concurrent tasks

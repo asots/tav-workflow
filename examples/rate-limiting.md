@@ -60,7 +60,7 @@ Phase 1 -> Analyzing
 
 ```json
 {
-  "version": "3.11.0",
+  "version": "3.12.0",
   "task_id": "tav-20260706-083000",
   "user_request": "Add rate limiting to the user login API to prevent brute force attacks",
   "task_tier": "L1",

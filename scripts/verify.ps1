@@ -161,12 +161,26 @@ if ($null -ne $state) {
   } else { Ok 'state template carries spec-driven origin and cleanup status' }
 }
 
+foreach ($fingerprint in @(
+  'spec-tav/v1',
+  '**Workflow State**: archived',
+  'acceptance criteria and explicit test expectation',
+  'relevant/affected files and dependencies as starting points',
+  'origin.spec_run_id',
+  'Do not choose L2 unless at least two escalation signals hold'
+)) {
+  if ($skill -notlike "*$fingerprint*") { Fail "SKILL.md interop/routing contract missing: $fingerprint" }
+}
+if ($script:fail -eq 0) { Ok 'SKILL.md carries tombstone, complete intake, origin, and two-signal routing contracts' }
+
 $implementationGuide = Get-Content 'references/implementation-guide.md' -Raw -Encoding UTF8
 if (-not $implementationGuide.Contains('explicitly authorized cleanup')) {
   Fail 'implementation guide lacks explicit cleanup authorization'
 } elseif (-not $implementationGuide.Contains('pnpm typecheck:TS2532') -or -not $implementationGuide.Contains('Never prefix a `by_command` key with a todo ID')) {
   Fail 'implementation guide lacks the failure-count entry schema or command-key boundary'
-} else { Ok 'implementation guide carries cleanup authority and failure-count entry semantics' }
+} elseif (-not $implementationGuide.Contains('origin.spec_run_id') -or -not $implementationGuide.Contains('**Workflow State**: archived')) {
+  Fail 'implementation guide lacks Spec-origin resume or tombstone semantics'
+} else { Ok 'implementation guide carries cleanup, failure-count, origin, and tombstone semantics' }
 
 $walkthroughSchemas = @{
   'Thinker - Analysis' = @('Task Classification','Evidence Gathered','Analysis Summary','Hard-Bug Evidence','Test Seam','Todo List','Risks','Verification Plan')
