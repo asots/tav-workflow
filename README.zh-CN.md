@@ -6,7 +6,7 @@
 
 TAV（Think-Act-Verify，思考-执行-验证）是一个面向范围明确的软件变更的结构化工作流。它将分析、执行、验证三种职责分离，确保每一次非平凡的修改都基于证据、保持最小化、并在宣告完成前经过独立检查。
 
-**版本**：3.13.0
+**版本**：3.14.0
 **状态**：Stable
 
 权威规范位于 [SKILL.md](SKILL.md)。本 README 面向读者提供概览；schema、命令表、输出契约只在 skill 文件中定义一次，此处仅作引用。
@@ -119,9 +119,9 @@ Phase 4: Completion
 
 ## 许可证
 
-MIT
+[MIT](LICENSE)
 
 ---
 
-**TAV Workflow v3.13.0**
+**TAV Workflow v3.14.0**
 *Think-Act-Verify：基于证据的变更、最小化执行、经验证的完成。*

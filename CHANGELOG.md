@@ -1,5 +1,12 @@
 # TAV Workflow Changelog
 
+## Version 3.14.0 (2026-10-26)
+
+### Decision records as Thinker evidence
+
+- **Added**: L1 Thinker evidence gathering searches the project's decision records (`.agents/notes/` decision notes, or an ADR directory) for the touched modules. Implemented notes and accepted ADRs constrain the plan, rejected notes are not re-proposed without new evidence, and conflicts with the request are surfaced.
+- **Added**: `LICENSE` (MIT), matching the license the README already declared.
+
 ## Version 3.13.0 (2026-09-20)
 
 ### Low-frequency branches moved out of the hot path
