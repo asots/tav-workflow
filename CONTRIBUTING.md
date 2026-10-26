@@ -6,7 +6,7 @@ The installable skill lives in `skills/tav-workflow/` (`SKILL.md`, `references/`
 
 ## Before you commit
 
-1. **Single source of truth for the version.** The `version:` field in `SKILL.md` frontmatter is authoritative. Every other version mention — `README.md`, `README.zh-CN.md` (both the `**Version**`/`**版本**` line and the footer `**TAV Workflow vX.Y.Z**`), and `references/templates/state.json` — must match it. Bump the version in `SKILL.md` first, then run the self-check.
+1. **Single source of truth for the version.** The `metadata.version` field in `SKILL.md` frontmatter is authoritative. Every other version mention — `README.md`, `README.zh-CN.md` (both the `**Version**`/`**版本**` line and the footer `**TAV Workflow vX.Y.Z**`), and `references/templates/state.json` — must match it. Bump the version in `SKILL.md` first, then run the self-check.
 2. **Run the self-check.**
    ```bash
    pwsh scripts/verify.ps1

@@ -20,10 +20,13 @@ function Fail($msg) { Write-Host "FAIL: $msg" -ForegroundColor Red; $script:fail
 function Ok($msg)   { Write-Host "OK:   $msg" -ForegroundColor Green }
 function Read-Text([string]$path) { Get-Content $path -Raw -Encoding UTF8 }
 
-# 1. SKILL.md frontmatter version is the single source of truth
+# 1. SKILL.md frontmatter metadata.version is the single source of truth
 $skill = Read-Text (Join-Path $skillDir 'SKILL.md')
-if ($skill -notmatch '(?m)^version:\s*(.+)$') { Fail 'SKILL.md frontmatter missing version'; $skillVer = '<none>' }
-else { $skillVer = $Matches[1].Trim(); Ok "SKILL.md version = $skillVer (source of truth)" }
+$frontmatter = if ($skill -match '(?s)^---\r?\n(.*?)\r?\n---') { $Matches[1] } else { '' }
+$verMatch = [regex]::Match($frontmatter, '(?m)^metadata:[ \t]*\r?\n(?:[ \t]+.*\r?\n)*?[ \t]+version:[ \t]*(\S+)')
+if (-not $verMatch.Success) { Fail 'SKILL.md frontmatter missing metadata.version'; $skillVer = '<none>' }
+else { $skillVer = $verMatch.Groups[1].Value.Trim(); Ok "SKILL.md metadata.version = $skillVer (source of truth)" }
+if ($frontmatter -match '(?m)^version:') { Fail 'SKILL.md frontmatter has a top-level version field; keep it in metadata.version' }
 
 # 2. Every other version mention must match
 # Non-ASCII pattern text is built from char codes so this script stays pure

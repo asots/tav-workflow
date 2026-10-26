@@ -1,8 +1,9 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
-version: 3.16.0
 license: MIT
+metadata:
+  version: 3.17.0
 ---
 
 # TAV Workflow - Think, Act, Verify

@@ -1,5 +1,11 @@
 # TAV Workflow Changelog
 
+## Version 3.17.0 (2026-10-26)
+
+### Version moved under metadata
+
+- **Changed**: The `SKILL.md` frontmatter keeps the version in `metadata.version`, matching the Agent Skills specification and `spec-driven-develop`. `scripts/verify.ps1` reads it from there and fails if a top-level `version` field returns.
+
 ## Version 3.16.0 (2026-10-26)
 
 ### Skill folder separated from repository files
