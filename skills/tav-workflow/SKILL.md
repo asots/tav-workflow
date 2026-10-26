@@ -1,7 +1,8 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
-version: 3.15.0
+version: 3.16.0
+license: MIT
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -377,7 +378,6 @@ Read these on demand, not upfront:
 - `examples/bug-fix.md` - two-iteration loop where Verifier catches an incomplete fix.
 - `examples/rate-limiting.md` - full L1 walkthrough including state file evolution.
 - `examples/refactoring.md` - behavior-preserving extraction with plan-mismatch recovery.
-- `CHANGELOG.md` - version history.
 
 ---
 

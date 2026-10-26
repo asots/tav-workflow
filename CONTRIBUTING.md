@@ -2,6 +2,8 @@
 
 This repository is a skill specification (documentation), not a runtime library. Changes are edits to `SKILL.md`, the READMEs, templates, examples, and the implementation guide.
 
+The installable skill lives in `skills/tav-workflow/` (`SKILL.md`, `references/`, `examples/`); the paths below are relative to it. Repository files (`README*`, `CHANGELOG.md`, `CONTRIBUTING.md`, `LICENSE`, `scripts/`, `tests/`) stay at the root and are not installed.
+
 ## Before you commit
 
 1. **Single source of truth for the version.** The `version:` field in `SKILL.md` frontmatter is authoritative. Every other version mention — `README.md`, `README.zh-CN.md` (both the `**Version**`/`**版本**` line and the footer `**TAV Workflow vX.Y.Z**`), and `references/templates/state.json` — must match it. Bump the version in `SKILL.md` first, then run the self-check.

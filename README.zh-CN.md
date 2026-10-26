@@ -6,10 +6,10 @@
 
 TAV（Think-Act-Verify，思考-执行-验证）是一个面向范围明确的软件变更的结构化工作流。它将分析、执行、验证三种职责分离，确保每一次非平凡的修改都基于证据、保持最小化、并在宣告完成前经过独立检查。
 
-**版本**：3.15.0
+**版本**：3.16.0
 **状态**：Stable
 
-权威规范位于 [SKILL.md](SKILL.md)。本 README 面向读者提供概览；schema、命令表、输出契约只在 skill 文件中定义一次，此处仅作引用。
+权威规范位于 [SKILL.md](skills/tav-workflow/SKILL.md)。本 README 面向读者提供概览；schema、命令表、输出契约只在 skill 文件中定义一次，此处仅作引用。
 
 ## 快速开始
 
@@ -57,13 +57,13 @@ TAV 工作流：
 - **困难故障诊断**：复杂、间歇性或性能故障先建立可精确变红的反馈环、最小化复现并排列可证伪假设；需要改文件的探针由一次性 diagnostic Actor 添加并清理，再把证据交回只读 Thinker。
 - **按计划 seam 的 TDD**：行为变更通过 Thinker 选定的最高稳定公共边界，以一个纵向 red-green 切片为单位推进。
 - **双轴审查**：机器门禁之后，Verifier 分开报告仓库 Standards 与任务 Spec，避免一个维度通过掩盖另一个维度失败。
-- **状态持久化**：`.tav/state.json` 支持恢复被中断的 L1 工作；超过 7 天的状态视为过期。schema 见 [SKILL.md](SKILL.md) Phase 0，完整模板见 [references/templates/state.json](references/templates/state.json)。
+- **状态持久化**：`.tav/state.json` 支持恢复被中断的 L1 工作；超过 7 天的状态视为过期。schema 见 [SKILL.md](skills/tav-workflow/SKILL.md) Phase 0，完整模板见 [references/templates/state.json](skills/tav-workflow/references/templates/state.json)。
 - **独立授权门**：分支/worktree、commit、push、PR、远端 tracker 写入、部署和本地状态清理均需分别明确授权；任务分级不会自动授予权限。
 - **原生任务跟踪**：进度映射到平台的真实任务工具（Claude Code 中为 `TaskCreate` / `TaskUpdate`）。
-- **栈感知质量门禁**：验证命令基于仓库证据选择（lockfile、`pyproject.toml`、`Cargo.toml`、`go.mod`、CI 配置）。完整表格见[验证命令选择](references/verification-commands.md)。
+- **栈感知质量门禁**：验证命令基于仓库证据选择（lockfile、`pyproject.toml`、`Cargo.toml`、`go.mod`、CI 配置）。完整表格见[验证命令选择](skills/tav-workflow/references/verification-commands.md)。
 - **错误恢复**：计划不匹配时返回 Thinker，门禁失败时返回 Actor，同一阻塞点失败两次触发 `[ESCALATION-REPORT]` 升级，关键安全问题阻断完成。
-- **知识沉淀**：门禁通过后，将持久化的经验教训写入项目已解析的记忆面：优先既有声明，其次原生项目记忆；仅在项目已声明或用户明确选择时才使用 `docs/memory/`。glossary、决策笔记与 instruction 文件是按知识类型选择的目标，不参与记忆面优先级竞争。见 [SKILL.md](SKILL.md) Phase 4。
-- **Spec-driven 互操作**：在 `spec-driven-develop` 项目内，镜像的 `spec-tav/v1` 契约会消费测试预期、受影响文件证据起点、交付批次与回滚边界；可恢复状态会记录并校验 Spec 来源，归档 MASTER tombstone 不会被当作活跃计划。见 [references/spec-driven-interop.md](references/spec-driven-interop.md)。
+- **知识沉淀**：门禁通过后，将持久化的经验教训写入项目已解析的记忆面：优先既有声明，其次原生项目记忆；仅在项目已声明或用户明确选择时才使用 `docs/memory/`。glossary、决策笔记与 instruction 文件是按知识类型选择的目标，不参与记忆面优先级竞争。见 [SKILL.md](skills/tav-workflow/SKILL.md) Phase 4。
+- **Spec-driven 互操作**：在 `spec-driven-develop` 项目内，镜像的 `spec-tav/v1` 契约会消费测试预期、受影响文件证据起点、交付批次与回滚边界；可恢复状态会记录并校验 Spec 来源，归档 MASTER tombstone 不会被当作活跃计划。见 [references/spec-driven-interop.md](skills/tav-workflow/references/spec-driven-interop.md)。
 
 ## 架构
 
@@ -101,20 +101,20 @@ Phase 4: Completion
 
 ## 示例
 
-- [examples/bug-fix.md](examples/bug-fix.md) - Verifier 捕获不完整修复的两轮迭代，含完整知识沉淀链路演示。
-- [examples/rate-limiting.md](examples/rate-limiting.md) - 完整 L1 演练，含状态文件演化。
-- [examples/refactoring.md](examples/refactoring.md) - 行为保持的提取重构，含计划不匹配恢复演示。
-- [examples/l0-quick-patch.md](examples/l0-quick-patch.md) - L0 轻量单遍流程，不建状态文件。
-- [examples/two-strike-escalation.md](examples/two-strike-escalation.md) - 两次同阻塞失败触发 `[ESCALATION-REPORT]` 与验证独立性升级。
+- [examples/bug-fix.md](skills/tav-workflow/examples/bug-fix.md) - Verifier 捕获不完整修复的两轮迭代，含完整知识沉淀链路演示。
+- [examples/rate-limiting.md](skills/tav-workflow/examples/rate-limiting.md) - 完整 L1 演练，含状态文件演化。
+- [examples/refactoring.md](skills/tav-workflow/examples/refactoring.md) - 行为保持的提取重构，含计划不匹配恢复演示。
+- [examples/l0-quick-patch.md](skills/tav-workflow/examples/l0-quick-patch.md) - L0 轻量单遍流程，不建状态文件。
+- [examples/two-strike-escalation.md](skills/tav-workflow/examples/two-strike-escalation.md) - 两次同阻塞失败触发 `[ESCALATION-REPORT]` 与验证独立性升级。
 
 ## 文档
 
-- [SKILL.md](SKILL.md) - 完整技能规范（单一真理源）。
+- [SKILL.md](skills/tav-workflow/SKILL.md) - 完整技能规范（单一真理源）。
 - [CHANGELOG.md](CHANGELOG.md) - 版本历史。
-- [实现指南](references/implementation-guide.md) - 操作细节。
-- [验证命令选择](references/verification-commands.md) - 栈和 IaC 门禁选择。
-- [状态模板](references/templates/state.json) - 持久化状态 schema。
-- [Thinker 输出](references/templates/thinker-output.md) / [Actor 输出](references/templates/actor-output.md) / [Verifier 输出](references/templates/verifier-output.md) - 阶段输出格式。
+- [实现指南](skills/tav-workflow/references/implementation-guide.md) - 操作细节。
+- [验证命令选择](skills/tav-workflow/references/verification-commands.md) - 栈和 IaC 门禁选择。
+- [状态模板](skills/tav-workflow/references/templates/state.json) - 持久化状态 schema。
+- [Thinker 输出](skills/tav-workflow/references/templates/thinker-output.md) / [Actor 输出](skills/tav-workflow/references/templates/actor-output.md) / [Verifier 输出](skills/tav-workflow/references/templates/verifier-output.md) - 阶段输出格式。
 - [CONTRIBUTING.md](CONTRIBUTING.md) - 如何编辑本技能并运行文档自检。
 
 ## 许可证
@@ -123,5 +123,5 @@ Phase 4: Completion
 
 ---
 
-**TAV Workflow v3.15.0**
+**TAV Workflow v3.16.0**
 *Think-Act-Verify：基于证据的变更、最小化执行、经验证的完成。*

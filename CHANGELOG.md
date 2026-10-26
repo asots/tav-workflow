@@ -1,5 +1,13 @@
 # TAV Workflow Changelog
 
+## Version 3.16.0 (2026-10-26)
+
+### Skill folder separated from repository files
+
+- **Changed**: `SKILL.md`, `references/`, and `examples/` moved to `skills/tav-workflow/`; installs no longer copy the README, CHANGELOG, CONTRIBUTING, LICENSE, or scripts. `SKILL.md` declares `license: MIT`.
+- **Added**: `tests/scenarios.md`, fixed situations with the outcome the rules require; `scripts/verify.ps1` checks that every cited heading exists.
+- **Added**: A GitHub Actions workflow runs this repository's and `spec-driven-develop`'s self-checks against sibling checkouts; a missing sibling fails the run in CI instead of being skipped.
+
 ## Version 3.15.0 (2026-10-26)
 
 ### Low-frequency contracts moved out of the hot path

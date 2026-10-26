@@ -1,8 +1,8 @@
 #requires -Version 5.1
 # TAV Workflow documentation self-check (structural invariants only).
 # Verifies version consistency (single source = SKILL.md frontmatter), README link
-# integrity, required-file existence, state.json validity, and the cross-repo
-# spec-tav/v1 contract. Per-section text fingerprints were removed in 3.13.0.
+# integrity, required-file existence, state.json validity, regression-scenario citations,
+# and the cross-repo spec-tav/v1 contract. The skill lives in skills/tav-workflow/.
 # Run: pwsh scripts/verify.ps1 [-SpecPath <path-to-spec-driven-develop-repo>]
 
 param(
@@ -13,13 +13,15 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 if ($SpecPath -eq '') { $SpecPath = Join-Path (Split-Path -Parent $root) 'spec-driven-develop' }
+$skillDir = Join-Path $root 'skills/tav-workflow'
 $script:fail = 0
 
 function Fail($msg) { Write-Host "FAIL: $msg" -ForegroundColor Red; $script:fail++ }
 function Ok($msg)   { Write-Host "OK:   $msg" -ForegroundColor Green }
+function Read-Text([string]$path) { Get-Content $path -Raw -Encoding UTF8 }
 
 # 1. SKILL.md frontmatter version is the single source of truth
-$skill = Get-Content SKILL.md -Raw -Encoding UTF8
+$skill = Read-Text (Join-Path $skillDir 'SKILL.md')
 if ($skill -notmatch '(?m)^version:\s*(.+)$') { Fail 'SKILL.md frontmatter missing version'; $skillVer = '<none>' }
 else { $skillVer = $Matches[1].Trim(); Ok "SKILL.md version = $skillVer (source of truth)" }
 
@@ -29,41 +31,39 @@ else { $skillVer = $Matches[1].Trim(); Ok "SKILL.md version = $skillVer (source 
 # would otherwise mangle embedded CJK/em-dash literals under a GBK locale.
 $zhVer = [string][char]0x7248 + [string][char]0x672C  # CJK word for "version"
 $fwColon = [string][char]0xFF1A                        # fullwidth colon
+$statePath = Join-Path $skillDir 'references/templates/state.json'
 $checks = @(
-  @{ file='README.md';                      pat='\*\*Version\*\*:\s*(.+)'; label='**Version**' },
-  @{ file='README.md';                      pat='\*\*TAV Workflow v(.+?)\*\*'; label='footer v' },
-  @{ file='README.zh-CN.md';                pat="\*\*$zhVer\*\*$fwColon\s*(.+)"; label="**$zhVer**" },
-  @{ file='README.zh-CN.md';                pat='\*\*TAV Workflow v(.+?)\*\*'; label='footer v' },
-  @{ file='references/templates/state.json';pat='"version":\s*"(.+)"'; label='version field' }
+  @{ file='README.md';       pat='\*\*Version\*\*:\s*(.+)'; label='**Version**' },
+  @{ file='README.md';       pat='\*\*TAV Workflow v(.+?)\*\*'; label='footer v' },
+  @{ file='README.zh-CN.md'; pat="\*\*$zhVer\*\*$fwColon\s*(.+)"; label="**$zhVer**" },
+  @{ file='README.zh-CN.md'; pat='\*\*TAV Workflow v(.+?)\*\*'; label='footer v' },
+  @{ file=$statePath;        pat='"version":\s*"(.+)"'; label='state.json version field' }
 )
 foreach ($c in $checks) {
-  $t = Get-Content $c.file -Raw -Encoding UTF8
+  $t = Read-Text $c.file
   if ($t -match $c.pat) {
     $v = $Matches[1].Trim()
-    if ($v -ne $skillVer) { Fail "$($c.file) $($c.label) = '$v' != SKILL.md '$skillVer'" }
-    else { Ok "$($c.file) $($c.label) = $v" }
-  } else { Fail "$($c.file) $($c.label) line not found" }
+    if ($v -ne $skillVer) { Fail "$($c.label) = '$v' != SKILL.md '$skillVer'" }
+    else { Ok "$($c.label) = $v" }
+  } else { Fail "$($c.label) line not found" }
 }
 
-$changelog = Get-Content 'CHANGELOG.md' -Raw -Encoding UTF8
-if ($changelog -notmatch ('(?m)^## Version ' + [regex]::Escape($skillVer) + ' \(')) {
+if ((Read-Text 'CHANGELOG.md') -notmatch ('(?m)^## Version ' + [regex]::Escape($skillVer) + ' \(')) {
   Fail "CHANGELOG.md has no entry for current version $skillVer"
 } else { Ok "CHANGELOG.md records current version $skillVer" }
 
-$stateText = Get-Content 'references/templates/state.json' -Raw -Encoding UTF8
 try {
-  $state = $stateText | ConvertFrom-Json
-  Ok 'references/templates/state.json is valid JSON'
+  $null = Read-Text $statePath | ConvertFrom-Json
+  Ok 'state.json template is valid JSON'
 } catch {
-  Fail "references/templates/state.json is invalid JSON: $($_.Exception.Message)"
+  Fail "state.json template is invalid JSON: $($_.Exception.Message)"
 }
 
 # 2b. Example snippets that embed state JSON must not drift from the skill version
-foreach ($example in Get-ChildItem examples -Filter '*.md') {
-  $t = Get-Content $example.FullName -Raw -Encoding UTF8
-  foreach ($m in [regex]::Matches($t, '"version"\s*:\s*"([^"]+)"')) {
+foreach ($example in Get-ChildItem (Join-Path $skillDir 'examples') -Filter '*.md') {
+  foreach ($m in [regex]::Matches((Read-Text $example.FullName), '"version"\s*:\s*"([^"]+)"')) {
     $v = $m.Groups[1].Value.Trim()
-    if ($v -ne $skillVer) { Fail "$($example.FullName) embedded version = '$v' != SKILL.md '$skillVer'" }
+    if ($v -ne $skillVer) { Fail "$($example.Name) embedded version = '$v' != SKILL.md '$skillVer'" }
     else { Ok "$($example.Name) embedded version = $v" }
   }
 }
@@ -71,37 +71,51 @@ foreach ($example in Get-ChildItem examples -Filter '*.md') {
 # 3. README relative links resolve to existing files
 foreach ($r in 'README.md','README.zh-CN.md') {
   $failsBefore = $script:fail
-  $t = Get-Content $r -Raw -Encoding UTF8
-  foreach ($m in [regex]::Matches($t, '\]\(([^)]+)\)')) {
+  foreach ($m in [regex]::Matches((Read-Text $r), '\]\(([^)]+)\)')) {
     $target = $m.Groups[1].Value
-    if ($target -match '^https?://') { continue }
-    if ($target -match '^#') { continue }
-    $p = Join-Path $root ($target -replace '#.*$','')
-    if (-not (Test-Path $p)) { Fail "$r -> $target (missing)" }
+    if ($target -match '^https?://' -or $target -match '^#') { continue }
+    if (-not (Test-Path (Join-Path $root ($target -replace '#.*$','')))) { Fail "$r -> $target (missing)" }
   }
   if ($script:fail -eq $failsBefore) { Ok "$r internal links resolved" }
 }
 
 # 4. Files referenced from SKILL.md exist
 $failsBefore = $script:fail
-foreach ($req in 'references/branches.md','references/escalation.md','references/spec-driven-interop.md','references/templates/state.json','references/templates/thinker-output.md','references/templates/actor-output.md','references/templates/verifier-output.md','references/implementation-guide.md','references/verification-commands.md','CHANGELOG.md') {
-  if (-not (Test-Path $req)) { Fail "missing referenced file: $req" }
+foreach ($req in 'references/branches.md','references/escalation.md','references/spec-driven-interop.md','references/templates/state.json','references/templates/thinker-output.md','references/templates/actor-output.md','references/templates/verifier-output.md','references/implementation-guide.md','references/verification-commands.md') {
+  if (-not (Test-Path (Join-Path $skillDir $req))) { Fail "missing referenced file: $req" }
 }
-if ($script:fail -eq $failsBefore) { Ok "referenced files exist" }
+if ($script:fail -eq $failsBefore) { Ok 'referenced files exist' }
 
-# 5. Cross-repo handoff contract with spec-driven-develop
+# 5. Every rule cited in tests/scenarios.md names a heading that still exists
+$sect = [string][char]0x00A7  # section sign, kept out of literals for ANSI-codepage safety
+$rows = [regex]::Matches((Read-Text 'tests/scenarios.md'), "(?m)\|\s*``([^``]+)``\s*$sect\s*""([^""]+)""\s*\|\s*$")
+if ($rows.Count -eq 0) { Fail 'tests/scenarios.md has no rule citations' }
+else {
+  $failsBefore = $script:fail
+  foreach ($row in $rows) {
+    $file = Join-Path $skillDir $row.Groups[1].Value
+    $heading = $row.Groups[2].Value
+    if (-not (Test-Path $file)) { Fail "scenario cites missing file: $($row.Groups[1].Value)" }
+    elseif ((Read-Text $file) -notmatch ('(?m)^#{1,6}\s+' + [regex]::Escape($heading) + '\s*$')) { Fail "scenario cites missing heading: $($row.Groups[1].Value) '$heading'" }
+  }
+  if ($script:fail -eq $failsBefore) { Ok "tests/scenarios.md: $($rows.Count) rule citations resolve" }
+}
+
+# 6. Cross-repo handoff contract with spec-driven-develop
 $specSkillPath = Join-Path $SpecPath 'plugins/spec-driven-develop/skills/spec-driven-develop/SKILL.md'
 if (-not (Test-Path $specSkillPath)) {
-  Write-Host "WARN: spec-driven-develop not found at '$SpecPath' - cross-repo contract checks skipped (pass -SpecPath to enable)" -ForegroundColor Yellow
+  $msg = "spec-driven-develop not found at '$SpecPath' - cross-repo contract checks skipped (pass -SpecPath to enable)"
+  if ($env:CI -eq 'true') { Fail $msg } else { Write-Host "WARN: $msg" -ForegroundColor Yellow }
 } else {
-  $specSkill = Get-Content $specSkillPath -Raw -Encoding UTF8
+  $specSkill = Read-Text $specSkillPath
   $em = [string][char]0x2014  # em dash, kept out of literals for ANSI-codepage safety
   $fallback = "A refactor confined to one module $em however messy $em stays at L1 (TAV territory)."
   if ($skill -notlike "*$fallback*" -or $specSkill -notlike "*$fallback*") {
     Fail 'L2 fallback sentence is not verbatim-identical across repos'
   } else { Ok 'L2 fallback sentence is verbatim-identical across repos' }
 
-  $interop = if (Test-Path 'references/spec-driven-interop.md') { Get-Content 'references/spec-driven-interop.md' -Raw -Encoding UTF8 } else { '' }
+  $interopPath = Join-Path $skillDir 'references/spec-driven-interop.md'
+  $interop = if (Test-Path $interopPath) { Read-Text $interopPath } else { '' }
   $canonicalPayload = 'Outcome, Rework, Plan returns, Unplanned dependencies, and Focused S.U.P.E.R result'
   if ($interop -notlike "*$canonicalPayload*" -or $specSkill -notlike "*$canonicalPayload*") {
     Fail 'execution-event payload is not canonical on both sides of the handoff'
