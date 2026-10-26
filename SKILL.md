@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
-version: 3.14.0
+version: 3.15.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -99,7 +99,7 @@ For L1 tasks, check for `.tav/state.json` in the target project root before any 
 - If it describes a different task, ask the user before replacing or archiving it.
 - If it does not exist, start fresh.
 
-Also check for `docs/progress/MASTER.md` in the target project. If it contains the exact `**Workflow State**: archived` marker, it is a Spec-Driven tombstone rather than an active plan: when `Pending Operations` is `none`, do not enter spec-driven task mode; when pending operations are listed, return the archive pointer and exact next action to the Spec-Driven orchestrator instead of starting or resuming a TAV task. Otherwise, if MASTER exists and the current task belongs to that active plan, follow "Operating Inside a Spec-Driven Project" below for task intake, write-back, and state ownership.
+Also check for `docs/progress/MASTER.md` in the target project. If it contains the exact `**Workflow State**: archived` marker, it is a Spec-Driven tombstone rather than an active plan: when `Pending Operations` is `none`, do not enter spec-driven task mode; when pending operations are listed, return the archive pointer and exact next action to the Spec-Driven orchestrator instead of starting or resuming a TAV task. Otherwise, if MASTER exists and the current task belongs to that active plan, follow `references/spec-driven-interop.md` for task intake, write-back, and state ownership.
 
 When a resumable TAV state has a non-null `origin.spec_run_id`, confirm that its run ID, task-card ID, delivery-batch ID, and rollback boundary still match the active MASTER/task card before resuming. A mismatch is different-task evidence: ask before replacing or archiving the state; never silently attach it to another plan.
 
@@ -305,7 +305,7 @@ When knowledge consolidation wrote to a memory or instruction surface, append th
 
 Report only measurable facts. File and line counts come from `git diff --stat`; never estimate token usage or wall-clock duration.
 
-In a spec-driven project (see "Operating Inside a Spec-Driven Project"), completion additionally requires a handoff. In orchestrator-direct execution, the orchestrator records authorized project-level progress and execution events; in a lane or delegated assignment, return the write-back payload and do not mark the project task complete yourself. Knowledge consolidation, when it fires, is returned as a candidate and routes through the governance surfaces resolved in MASTER.md.
+In a spec-driven project (see `references/spec-driven-interop.md`), completion additionally requires a handoff. In orchestrator-direct execution, the orchestrator records authorized project-level progress and execution events; in a lane or delegated assignment, return the write-back payload and do not mark the project task complete yourself. Knowledge consolidation, when it fires, is returned as a candidate and routes through the governance surfaces resolved in MASTER.md.
 
 Archive or remove `.tav/state.json` only after completion, only if it belongs to the completed workflow, and only with explicit cleanup authorization. Otherwise preserve it with `current_phase: complete` and `cleanup_status: awaiting_authorization`. Do not delete VCS metadata under any circumstance.
 
@@ -335,59 +335,15 @@ Risk level is set in Thinker and may change as evidence accumulates. Escalate (n
 
 Risk escalation is independent from rework counting. A rework iteration can increase verification independence without changing risk; run the security-sensitive branch only when the affected surface warrants it. Downgrading requires fresh Thinker evidence that the original trigger no longer applies — record the reason in the Verifier output.
 
-### Failure counting semantics
+### Failure counting
 
-The "same blocker fails twice" rule needs a stable key so the count is meaningful:
-
-- **Blocker key** = `todo_id` (or the verification command string when the failure is a gate command) + a normalized error signature. Normalize by keeping the stable part (error type/code, failing rule or test name) and stripping volatile parts (line numbers, file offsets, timestamps, memory addresses) — `TS2532`, not `TS2532-dashboard.ts:8`. Record the normalized key from the first failure; never widen a key after the fact to make two failures match. Store it under `failure_counts.by_blocker` for plan/structural failures and `failure_counts.by_command` for gate-command failures.
-- **Consecutive**: only consecutive failures of the *same* key count. A success or a Thinker re-plan resets the counter for that key.
-- **Count only unexpected comparable failures**: expected TDD RED results, pre-change baseline failures, hypothesis probes, intentionally incomplete intermediate checks, and confirmed environment/infrastructure failures do not increment the counter. Record them as evidence under their own lifecycle instead.
-- **Two-strike trigger**: the second consecutive failure of the same key emits `[ESCALATION-REPORT]`, requires an independent Verifier when available, and returns to Thinker for a re-plan before more implementation. A third is not required — escalate on two. This verification escalation does not itself require user approval; request an explicit user decision only if the safe next step changes the approved spec, acceptance criteria, architecture, rollback boundary, irreversible operation, or external authority.
-- **Re-plan resets**: when the Thinker revises the todo list after a return, all `failure_counts` entries for the superseded todos are cleared, because the blocker key is no longer valid.
-
-Never reset a counter to avoid escalation. If the same root cause keeps surfacing under different keys, treat that as a Thinker signal that the diagnosis is wrong.
-
-### Escalation report format
-
-```text
-[ESCALATION-REPORT]
-- 触发节点：[Agent Name / Current Phase Name]
-- 失败次数：[Exact consecutive failure count]
-- 核心瓶颈：[Precise technical blocker]
-- 异常上下文：[Terminal traces, exception stack, or error block]
-- 纠正性复盘：[Logic correction and next safe action]
-```
+The blocker key is `todo_id` (or the gate command) plus a normalized error signature. Only consecutive, unexpected, comparable failures of the same key count; expected TDD RED results, pre-change baseline failures, hypothesis probes, and confirmed environment failures do not. The second consecutive failure emits `[ESCALATION-REPORT]`, requires an independent Verifier when available, and returns to Thinker for a re-plan, which clears the superseded keys. Never reset a counter to avoid escalation. When a failure first repeats, read `references/escalation.md` for the normalization rules, reset semantics, and the report format.
 
 ---
 
 ## Operating Inside a Spec-Driven Project
 
-When an active (non-tombstone) `docs/progress/MASTER.md` exists and the current task comes from a `spec-driven-develop` plan, one TAV cycle executes exactly one task card, while the enclosing delivery batch owns branches, integration validation, and the single batch PR. Spec Phases 0-6 and TAV Phases 0-4 are independent numbering systems. This is the execution half of the Handoff Contract defined in `spec-driven-develop` § "Boundary with TAV" — keep both sides in sync.
-
-**Handoff contract ID**: `spec-tav/v1` (mirrors the canonical Spec-Driven contract).
-
-**Task intake (Thinker):**
-
-- Take the task definition from the pending GitHub Issue or phase-file entry, not from a re-interpretation of the original user request.
-- Treat the task card's acceptance criteria and explicit test expectation as the baseline of the verification plan; add stack-appropriate gates on top.
-- Treat the task card's S.U.P.E.R design drivers as additional Verifier check items.
-- Treat the task card's relevant/affected files and dependencies as starting points for Thinker evidence gathering, not as permission to skip affected callers or checks.
-- Treat the task card's delivery-batch ID, delivery shape, and rollback boundary as fixed execution constraints. If a LOCAL_ONLY entry lacks them, return the incomplete task-card evidence to the orchestrator instead of inferring them from the original user request.
-- Treat the task card's memory/governance impact field as pre-declared candidates for Phase 4 knowledge consolidation.
-- If `.tav/state.json` is created, populate `origin.spec_run_id`, `origin.task_card_id`, `origin.delivery_batch_id`, and `origin.rollback_boundary` from the active MASTER and task card; standalone TAV cycles leave these fields null.
-
-**Completion write-back (after Verifier passes):**
-
-- Return `ready for batch integration` — do not create a task-level PR or use closing keywords. In orchestrator-direct execution, the orchestrator updates the Current Status and, after integrated validation plus the required authorization, performs closure through the batch PR's `Closes #N` line (or the LOCAL_ONLY checkbox). In a lane or delegated assignment, do not edit `MASTER.md`, an Issue, or a phase file.
-- Return one execution-event payload from observed TAV signals: Outcome, Rework, Plan returns, Unplanned dependencies, and Focused S.U.P.E.R result. Only the orchestrator records it once according to `spec-driven-develop` `references/adaptive-control.md`.
-- Return knowledge-consolidation candidates for the orchestrator to reconcile against "Governance Status" in MASTER.md. A lane or delegated TAV cycle never writes resolved memory or instruction surfaces directly.
-- On `[ESCALATION-REPORT]` or a blocked state, return the event before pausing. Only the orchestrator records it in an authorized Issue comment or phase file and selects watch, replan, or rescope.
-
-**State ownership:**
-
-- `docs/progress/MASTER.md` is the project-level lightweight status authority.
-- GitHub Issues (GitHub modes) or phase-file task entries (LOCAL_ONLY) are the authoritative task-event records.
-- `.tav/state.json` is scoped to one task: it is created only when that single task needs cross-session recovery, it is archived or deleted with explicit cleanup authorization when the task completes, and it never carries project-level progress.
+When an active (non-tombstone) `docs/progress/MASTER.md` exists and the current task comes from a `spec-driven-develop` plan, one TAV cycle executes exactly one task card and the enclosing delivery batch owns branches, integration validation, and the single batch PR. This skill implements the execution half of the `spec-tav/v1` handoff contract defined in `spec-driven-develop` § "Boundary with TAV". Before task intake, read `references/spec-driven-interop.md`; it owns the task-intake, completion write-back, and state-ownership rules.
 
 ---
 
@@ -412,6 +368,8 @@ For independent read-only analysis, use parallel agents when helpful. For edits,
 Read these on demand, not upfront:
 
 - `references/branches.md` - full contracts for the hard-bug diagnosis, diagnostic Actor micro-loop, design-prototype, and TDD execution branches; read when a branch trigger fires.
+- `references/spec-driven-interop.md` - execution half of the `spec-tav/v1` handoff contract; read when an active MASTER.md is present.
+- `references/escalation.md` - failure-counting rules and the `[ESCALATION-REPORT]` format; read when a failure first repeats.
 - `references/templates/state.json` - read before creating `.tav/state.json` for the first time.
 - `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - canonical L1 phase-output schemas; read the matching template before producing each phase output.
 - `references/implementation-guide.md` - operational details: state lifecycle, native task tracking, metrics rules, knowledge consolidation mechanics, safety notes.

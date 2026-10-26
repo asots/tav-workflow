@@ -1,5 +1,12 @@
 # TAV Workflow Changelog
 
+## Version 3.15.0 (2026-10-26)
+
+### Low-frequency contracts moved out of the hot path
+
+- **Changed**: "Operating Inside a Spec-Driven Project" moved to `references/spec-driven-interop.md`, and the failure-counting rules and `[ESCALATION-REPORT]` format moved to `references/escalation.md`; `SKILL.md` keeps the triggers and a two-strike summary (SKILL.md 33.8KB -> 29.7KB).
+- **Changed**: The hard-bug and TDD recording rules moved from `references/implementation-guide.md` into their branches in `references/branches.md`, so each branch has one home.
+
 ## Version 3.14.0 (2026-10-26)
 
 ### Decision records as Thinker evidence

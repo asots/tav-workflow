@@ -35,7 +35,7 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 
 - Update `current_phase`, `completed_steps`, and `last_update` at each phase transition.
 - For hard bugs, keep `diagnosis.feedback_command`, the compact baseline result/reproduction rate, ranked hypothesis summaries, and current probe lifecycle (`planned|applied|removed|not_applicable`) recoverable. For test-first work, keep the chosen `tdd.test_seam` plus compact RED/GREEN command evidence. For review, persist separate `review_axes.standards` and `review_axes.spec` statuses and evidence pointers.
-- Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `SKILL.md` § "Failure counting semantics" — two consecutive failures of the same key triggers `[ESCALATION-REPORT]`.
+- Track repeated failures in `failure_counts.by_blocker` and `failure_counts.by_command`; the blocker key, consecutiveness, and re-plan reset rules are defined in `references/escalation.md` — two consecutive failures of the same key triggers `[ESCALATION-REPORT]`.
 - Each map value uses the same compact entry shape: `{ "count": 2, "last_failed_at": "2026-07-28T08:00:00Z", "key_established": "iteration-1" }`. For example, `by_command["pnpm typecheck:TS2532"]` stores a gate-command failure, while `by_blocker["todo-2:missing-null-guard"]` stores a plan/structural failure. A successful comparable check removes or resets that key; a Thinker re-plan removes entries for superseded todos. Never prefix a `by_command` key with a todo ID.
 - `phase_outputs` holds compact, recoverable state: the approved plan or next action, evidence pointers, and the verification plan/results needed to resume without chat history. Never duplicate the whole Thinker/Actor/Verifier report or full logs into state; they drift and waste space. Redact secrets, credentials, authorization data, private user data, and sensitive payloads before persisting any evidence pointer or result summary.
 
@@ -67,31 +67,14 @@ Report only measurable facts:
 - In Claude Code, native plan mode can host the Thinker phase; the approved plan is the todo list.
 - Each todo item carries: target file or symbol, specific action, risk level, expected verification evidence.
 - Output contract: `references/templates/thinker-output.md`.
-
-#### Hard-bug diagnostic mechanics
-
-- Store the feedback-loop command and its first observed result in `evidence gathered`; carry the same command into the verification plan and `diagnosis.feedback_command` so the Verifier reruns the identical signal. The loop must target local, test, or explicitly authorized sandbox state; production mutations and external state changes are never diagnostic evidence.
-- Treat a flaky reproduction rate as measured evidence. Record the loop count and observed failures before and after tightening rather than describing it as "sometimes".
-- Minimize one dimension at a time and rerun after each reduction. The minimized case becomes the regression-test input when a correct seam exists.
-- Hypotheses belong in the hard-bug evidence block, ranked with one falsifiable prediction each. A file-changing probe enters the diagnostic Actor micro-loop only after it maps to one prediction.
-- The probe contract names exact files, one unique tag, the feedback command, and a cleanup check. The diagnostic Actor first records each probe path's VCS status/diff (including untracked or absent paths), applies the probe, captures the result, removes it, then proves the paths returned to that baseline and the tag is absent. It never retains a test or implements the fix.
-- If cleanup fails, remain blocked in the probe micro-loop. Do not let temporary instrumentation leak into the normal Actor diff.
-- For performance work, record the baseline metric and measurement command before proposing a fix.
+- Hard-bug diagnosis and design-prototype contracts, including their recording rules: `references/branches.md`.
 
 ### Actor
 
 - Actor may read target files or snippets when required by the edit mechanism or to confirm exact context. Actor must not perform new requirement discovery.
-- A diagnostic Actor is the same write-capable role under a narrower temporary contract. It may change only the named probe files, must remove all probe edits in the same micro-step, and always returns to Thinker rather than Verifier.
 - Any structural mismatch between plan and code returns to Thinker with evidence.
 - Output contract: `references/templates/actor-output.md`.
-
-#### Test-driven slice mechanics
-
-- Keep the red-green record compact: test/seam, red command result, minimal implementation, green command result.
-- A vertical slice proves one externally visible capability through its public seam. Do not batch unrelated cases merely because they share a file.
-- Mocks are acceptable at true external boundaries; do not mock the internal collaboration whose behavior the test is supposed to prove.
-- If a test passes before implementation, stop: either the behavior already exists, the assertion is insensitive, or the wrong seam was selected. Return to Thinker when the task definition must change.
-- If the planned seam cannot reproduce a hard bug's real caller pattern, do not force a shallow test. Return with the architecture evidence.
+- Diagnostic Actor micro-loop and TDD execution contracts, including their recording rules: `references/branches.md`.
 
 ### Verifier
 

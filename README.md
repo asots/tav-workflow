@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.14.0
+**Version**: 3.15.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -63,7 +63,7 @@ TAV workflow:
 - **Stack-aware quality gates**: verification commands are chosen from repository evidence (lockfiles, `pyproject.toml`, `Cargo.toml`, `go.mod`, CI config). The full table is in [Verification Command Selection](references/verification-commands.md).
 - **Error recovery**: plan mismatches return to Thinker, gate failures return to Actor, the same blocker failing twice triggers `[ESCALATION-REPORT]` escalation, and critical security issues block completion.
 - **Knowledge consolidation**: after gates pass, durable lessons use the project's resolved memory surface: an existing declaration first, then native project memory, then `docs/memory/` only when it is already declared or explicitly selected. Glossaries, decision notes, and instruction files are type-specific destinations, not competitors in that memory priority order. See [SKILL.md](SKILL.md) Phase 4.
-- **Spec-driven interop**: inside a `spec-driven-develop` project, the mirrored `spec-tav/v1` contract consumes the task's test expectation, affected-file evidence starts, delivery batch, and rollback boundary; resumable state records and validates its Spec origin. Archived MASTER tombstones are never treated as active plans. See [SKILL.md](SKILL.md) "Operating Inside a Spec-Driven Project".
+- **Spec-driven interop**: inside a `spec-driven-develop` project, the mirrored `spec-tav/v1` contract consumes the task's test expectation, affected-file evidence starts, delivery batch, and rollback boundary; resumable state records and validates its Spec origin. Archived MASTER tombstones are never treated as active plans. See [references/spec-driven-interop.md](references/spec-driven-interop.md).
 
 ## Architecture
 
@@ -123,5 +123,5 @@ If `docs/memory/` is selected as the repository's memory surface, commit it with
 
 ---
 
-**TAV Workflow v3.14.0**
+**TAV Workflow v3.15.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

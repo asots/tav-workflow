@@ -84,7 +84,7 @@ foreach ($r in 'README.md','README.zh-CN.md') {
 
 # 4. Files referenced from SKILL.md exist
 $failsBefore = $script:fail
-foreach ($req in 'references/branches.md','references/templates/state.json','references/templates/thinker-output.md','references/templates/actor-output.md','references/templates/verifier-output.md','references/implementation-guide.md','references/verification-commands.md','CHANGELOG.md') {
+foreach ($req in 'references/branches.md','references/escalation.md','references/spec-driven-interop.md','references/templates/state.json','references/templates/thinker-output.md','references/templates/actor-output.md','references/templates/verifier-output.md','references/implementation-guide.md','references/verification-commands.md','CHANGELOG.md') {
   if (-not (Test-Path $req)) { Fail "missing referenced file: $req" }
 }
 if ($script:fail -eq $failsBefore) { Ok "referenced files exist" }
@@ -101,13 +101,14 @@ if (-not (Test-Path $specSkillPath)) {
     Fail 'L2 fallback sentence is not verbatim-identical across repos'
   } else { Ok 'L2 fallback sentence is verbatim-identical across repos' }
 
+  $interop = if (Test-Path 'references/spec-driven-interop.md') { Get-Content 'references/spec-driven-interop.md' -Raw -Encoding UTF8 } else { '' }
   $canonicalPayload = 'Outcome, Rework, Plan returns, Unplanned dependencies, and Focused S.U.P.E.R result'
-  if ($skill -notlike "*$canonicalPayload*" -or $specSkill -notlike "*$canonicalPayload*") {
+  if ($interop -notlike "*$canonicalPayload*" -or $specSkill -notlike "*$canonicalPayload*") {
     Fail 'execution-event payload is not canonical on both sides of the handoff'
   } else { Ok 'execution-event payload is canonical on both sides of the handoff' }
 
   $statePattern = '(?ms)\*\*State ownership:\*\*\s*(.*?)(?:\n---|\z)'
-  $tavStateMatch = [regex]::Match($skill, $statePattern)
+  $tavStateMatch = [regex]::Match($interop, $statePattern)
   $specStateMatch = [regex]::Match($specSkill, $statePattern)
   if (-not $tavStateMatch.Success -or -not $specStateMatch.Success) {
     Fail 'state ownership block missing from one side of the handoff'
