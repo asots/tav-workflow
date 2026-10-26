@@ -1,7 +1,7 @@
 ---
 name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
-version: 3.12.0
+version: 3.13.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -134,39 +134,18 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 - Redact secrets, credentials, cookies, authorization headers, connection strings, private user data, and sensitive payloads before placing evidence in state, reports, memory, or remote trackers. Keep full logs only in an approved local location and cite a compact pointer.
 - Prefer targeted reads and searches over broad file dumps.
 - If the project has a memory index (`docs/memory/MEMORY.md`), read **only the index lines** (one hook per entry) and shortlist entries whose hook mentions the task's files, modules, or topic. Open only the shortlisted entry files, then use their `applies_to`/`tags` frontmatter to confirm relevance and discard mismatches — previously captured knowledge is first-class evidence, but loading every entry wastes context. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
-- If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution and decision recording route through the `domain-modeling` skill when available (write targets in Phase 4). When it is unavailable, apply the same evidence-first terminology challenge directly and return any confirmed glossary/ADR write-back candidate for Phase 4.
+- If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution routes through the `domain-modeling` skill when available, and decision recording follows the Phase 4 write targets. When that skill is unavailable, apply the same evidence-first terminology challenge directly and return any confirmed glossary or decision write-back candidate for Phase 4.
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
 - Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
 
 ### Hard-bug diagnosis branch
 
-Use this branch when the failure resists an obvious first-pass explanation, is intermittent, is a performance regression, or the user explicitly asks for diagnosis/debugging. Ordinary scoped fixes keep the standard Thinker flow.
-
-1. **Establish the feedback loop before theorizing.** Identify and run one existing command, script, trace replay, or debugger/REPL path that exercises the user's exact symptom. It must be red-capable, deterministic (or have a measured high reproduction rate for a flaky bug), as fast as practical, agent-runnable, and confined to local, test, or explicitly authorized sandbox state. Never use a production mutation, external message, payment, deployment, or resource creation as a diagnostic feedback loop. If a new harness or source instrumentation is required, design it here and use the diagnostic Actor micro-loop below instead of editing during Thinker.
-2. **Reproduce and minimize.** Confirm the loop catches the reported failure, then remove inputs, callers, configuration, data, and steps one at a time until every remaining element is load-bearing.
-3. **Rank falsifiable hypotheses.** Write 3-5 candidate causes before testing them. Each hypothesis states a prediction that one targeted probe can confirm or falsify. Share the ranking as a non-blocking checkpoint when user domain knowledge could materially reorder it.
-4. **Probe one variable at a time.** Prefer read-only debugger/REPL inspection. When a file edit is required, specify one falsifying prediction, the exact probe files, a unique removable tag, and a cleanup check for the diagnostic Actor. Performance work starts from a measured baseline, profiler/query plan, or bisection signal rather than broad logging.
-5. **Plan the regression proof at the correct seam.** The test must exercise the real bug pattern through a stable public boundary. If no correct seam exists, record that architecture limitation instead of adding a shallow test that cannot catch the original failure.
-6. **Close the loop.** After diagnosis returns to normal TAV, the Actor applies the minimal fix; the Verifier reruns both the minimized regression proof and the original feedback command, and confirms all temporary instrumentation or harnesses are removed.
-
-#### Diagnostic Actor micro-loop
-
-This micro-loop preserves the Thinker read-only boundary when diagnosis needs temporary file changes:
-
-1. Thinker records the probe's prediction, exact files, command, unique tag, and cleanup check. The probe must be disposable and narrower than the eventual fix.
-2. A diagnostic Actor captures the pre-probe VCS status/diff for the named paths (including whether a path was untracked or absent), applies only that probe, runs the named feedback command, captures the observed result, removes every probe edit, and proves those paths match the pre-probe baseline with the unique tag absent.
-3. Control returns to Thinker, which updates the hypothesis ranking from the observed signal. Repeat only for a materially different prediction.
-
-The diagnostic Actor does not implement the fix or retain a regression test. Persistent tests and product changes belong to the normal Actor after the Thinker plan is complete. If baseline restoration cannot be proven, stop and report the residual diagnostic delta without touching pre-existing user changes.
-
-If no usable feedback loop can be built, stop speculative diagnosis. Report the attempts and exact limitation, then request the missing environment access, captured artifact, or permission for temporary instrumentation.
+Use this branch when the failure resists an obvious first-pass explanation, is intermittent, is a performance regression, or the user explicitly asks for diagnosis/debugging. Ordinary scoped fixes keep the standard Thinker flow. Read `references/branches.md` § "Hard-bug diagnosis branch" and follow it: establish a red-capable feedback loop before theorizing, reproduce and minimize, rank falsifiable hypotheses, probe one variable at a time, plan the regression proof at the correct seam, and close the loop. File-changing probes run through the diagnostic Actor micro-loop defined there; the Thinker stays read-only, and diagnosis stops with a report when no usable feedback loop can be built.
 
 ### Design-prototype branch
 
-Use this branch when a plan decision hinges on how a state model, interaction, or interface should behave and repository evidence cannot settle it — the question is "does this design feel right?", not "why does this fail?". Build a throwaway prototype that answers that single question: an interactive terminal harness for state/logic questions, or switchable UI variations for interface questions. Use the `prototype` skill when the platform provides it.
-
-The prototype follows the diagnostic-probe discipline: explicitly marked as throwaway, no tests or polish, never part of the final diff, and removed once the question is answered (retain it only on explicit user request, outside the delivered change). Record the question, the run command, and the validated decision in the Thinker output; only the decision enters the todo list, and the Verifier confirms no prototype code remains in the delivered change.
+Use this branch when a plan decision hinges on how a state model, interaction, or interface should behave and repository evidence cannot settle it — the question is "does this design feel right?", not "why does this fail?". Follow `references/branches.md` § "Design-prototype branch": build a throwaway prototype that answers that single question, record the question, run command, and validated decision in the Thinker output, and let the Verifier confirm no prototype code remains in the delivered change. Use the `prototype` skill when the platform provides it.
 
 ### Required Thinker output
 
@@ -199,14 +178,7 @@ Actor executes the approved todo list. Do not perform unrelated refactors.
 
 ### TDD execution branch
 
-Use test-driven execution when the Thinker plan requires new or strengthened automated tests, when the hard-bug branch produced a regression proof, or when the user explicitly requests test-first work.
-
-- The Thinker names the **test seam**: the highest stable public boundary that can prove the required behavior. Prefer an existing seam. Ask the user only when competing seams materially change scope, architecture, or cost; otherwise choose from repository evidence and record the decision.
-- Work in one vertical behavior slice at a time: write one test for externally observable behavior, run it red, add only enough implementation to make it green, then repeat.
-- Expected values must come from an independent source of truth such as the confirmed requirement, a worked example, or known-good literal — never recompute the implementation inside the assertion.
-- Avoid implementation-coupled mocks/private-method tests and horizontal "all tests first, all implementation later" batches.
-- Refactor only after the slice is green and only when the refactor is already within the approved todo list; an unplanned structural need returns to Thinker.
-- Record the red and green command evidence in progress so the Verifier can rerun it independently.
+Use test-driven execution when the Thinker plan requires new or strengthened automated tests, when the hard-bug branch produced a regression proof, or when the user explicitly requests test-first work. Read `references/branches.md` § "TDD execution branch" and follow it: the Thinker names the test seam (highest stable public boundary; ask only when competing seams materially change scope, architecture, or cost), work advances one vertical red-green behavior slice at a time, expected values come from an independent source of truth, unplanned structural needs return to Thinker, and red/green command evidence is recorded for the Verifier.
 
 ### Required Actor output
 
@@ -290,14 +262,14 @@ Write target — resolve the memory surface before choosing a file. Items 1-3 ar
 1. **Existing governance or declared project memory surface** — in a spec-driven project, `docs/progress/MASTER.md` "Governance Status" wins; otherwise use the project's already declared memory surface. Do not create a competing source.
 2. **The platform's native project memory** — the default when no existing project declaration takes precedence and native memory is available.
 3. **A repo-local fallback** (`docs/memory/`) — only when the project already declares it or the user explicitly selects it. When selected, use one entry per file plus a `MEMORY.md` index line; commit it with the repository.
-4. **Domain surfaces** (`CONTEXT.md` glossary; the project's ADR directory) — confirmed canonical terms go to the glossary, and decisions that are costly to reverse, surprising without context, and the result of a genuine trade-off go to an ADR. Route these through the `domain-modeling` skill when available; do not duplicate them into general memory.
+4. **Domain surfaces** (`CONTEXT.md` glossary; decision notes) — confirmed canonical terms go to the glossary through the `domain-modeling` skill when available. Decisions that are costly to reverse, surprising without context, and the result of a genuine trade-off go to a decision note through the `write-notes-like-deepseek` skill, which owns the note location, format, verification gate, and archival; when that skill is unavailable, list the decision as a final-report candidate instead of hand-writing a note. Do not duplicate terms or decisions into general memory.
 5. **An existing instruction surface** (`CLAUDE.md`, `AGENTS.md`, or an existing platform rule file) — high-bar exception, only for a rule that must be unconditionally present in every session. Add at most one line; link to the resolved memory surface for detail.
 
-If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the resolved memory surface. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
+If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the resolved memory surface; decision notes written through the `write-notes-like-deepseek` skill are the sanctioned exception. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
 
 ### Post-consolidation verification
 
-When Phase 4 writes or updates a memory, instruction, glossary, or ADR surface, rerun `git diff` after that write, inspect the newly changed hunk, and run the narrowest available documentation/static validation. Recheck the added material for secrets and sensitive evidence. The Phase 3 verdict covers the implementation diff; do not claim it automatically verifies documentation written afterwards.
+When Phase 4 writes or updates a memory, instruction, glossary, or decision-note surface, rerun `git diff` after that write, inspect the newly changed hunk, and run the narrowest available documentation/static validation. Recheck the added material for secrets and sensitive evidence. The Phase 3 verdict covers the implementation diff; do not claim it automatically verifies documentation written afterwards.
 
 ### Final report
 
@@ -438,6 +410,7 @@ For independent read-only analysis, use parallel agents when helpful. For edits,
 
 Read these on demand, not upfront:
 
+- `references/branches.md` - full contracts for the hard-bug diagnosis, diagnostic Actor micro-loop, design-prototype, and TDD execution branches; read when a branch trigger fires.
 - `references/templates/state.json` - read before creating `.tav/state.json` for the first time.
 - `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - canonical L1 phase-output schemas; read the matching template before producing each phase output.
 - `references/implementation-guide.md` - operational details: state lifecycle, native task tracking, metrics rules, knowledge consolidation mechanics, safety notes.

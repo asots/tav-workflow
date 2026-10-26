@@ -1,5 +1,13 @@
 # TAV Workflow Changelog
 
+## Version 3.13.0 (2026-09-20)
+
+### Low-frequency branches moved out of the hot path
+
+- **Changed**: The hard-bug diagnosis, diagnostic Actor micro-loop, design-prototype, and TDD execution branch contracts moved from `SKILL.md` into `references/branches.md`; the core skill keeps compact triggers and pointers (SKILL.md 36.5KB → 33.3KB).
+- **Changed**: The documentation self-check now verifies only structural invariants (version parity, link integrity, required files, state.json validity) plus the cross-repo `spec-tav/v1` contract; per-section text fingerprints and example schema checks were removed.
+- **Changed**: Phase 4 knowledge consolidation routes decision-type knowledge to decision notes through the `write-notes-like-deepseek` skill, which owns the note location, format, verification gate, and archival; without that skill, the decision is listed as a final-report candidate. Glossary terms still route through `domain-modeling`. TAV does not vendor the note format or gate, keeping a single source of truth.
+
 ## Version 3.12.0 (2026-07-29)
 
 ### Spec-origin recovery and routing closure
