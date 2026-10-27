@@ -3,7 +3,7 @@ name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
 license: MIT
 metadata:
-  version: 3.17.0
+  version: 3.18.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -137,7 +137,7 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 - Prefer targeted reads and searches over broad file dumps.
 - If the project has a memory index (`docs/memory/MEMORY.md`), read **only the index lines** (one hook per entry) and shortlist entries whose hook mentions the task's files, modules, or topic. Open only the shortlisted entry files, then use their `applies_to`/`tags` frontmatter to confirm relevance and discard mismatches — previously captured knowledge is first-class evidence, but loading every entry wastes context. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
 - If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution routes through the `domain-modeling` skill when available, and decision recording follows the Phase 4 write targets. When that skill is unavailable, apply the same evidence-first terminology challenge directly and return any confirmed glossary or decision write-back candidate for Phase 4.
-- If the project keeps decision records (decision notes under `.agents/notes/`, or an ADR directory such as `docs/adr/`), search them for the touched modules and mechanism names before planning; `.agents/` is hidden, so use `rg --hidden` and skip `.agents/notes/archived/`. Treat implemented notes and accepted ADRs as constraints, and rejected notes as approaches not to re-propose unless new evidence removes the reason they were rejected. When the requested change contradicts a recorded decision, surface the conflict instead of silently overriding it.
+- If the project keeps decision records (decision notes under `.agents/notes/`, or an ADR directory such as `docs/adr/`), search them for the touched modules and mechanism names before planning; `.agents/` is hidden, so use `rg --hidden` and skip `.agents/notes/archived/`. Treat implemented notes and accepted ADRs as constraints, proposed notes for the touched modules as pending intent (when the task implements one, Phase 4 moves it to implemented), and rejected notes as approaches not to re-propose unless new evidence removes the reason they were rejected. When the requested change contradicts a recorded decision, surface the conflict instead of silently overriding it.
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
 - Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
@@ -265,7 +265,7 @@ Write target — resolve the memory surface before choosing a file. Items 1-3 ar
 1. **Existing governance or declared project memory surface** — in a spec-driven project, `docs/progress/MASTER.md` "Governance Status" wins; otherwise use the project's already declared memory surface. Do not create a competing source.
 2. **The platform's native project memory** — the default when no existing project declaration takes precedence and native memory is available.
 3. **A repo-local fallback** (`docs/memory/`) — only when the project already declares it or the user explicitly selects it. When selected, use one entry per file plus a `MEMORY.md` index line; commit it with the repository.
-4. **Domain surfaces** (`CONTEXT.md` glossary; decision notes) — confirmed canonical terms go to the glossary through the `domain-modeling` skill when available. Decisions that are costly to reverse, surprising without context, and the result of a genuine trade-off go to a decision note through the `write-notes-like-deepseek` skill, which owns the note location, format, verification gate, and archival; when that skill is unavailable, list the decision as a final-report candidate instead of hand-writing a note. Do not duplicate terms or decisions into general memory.
+4. **Domain surfaces** (`CONTEXT.md` glossary; decision notes) — confirmed canonical terms go to the glossary through the `domain-modeling` skill when available. Decisions that are costly to reverse, surprising without context, and the result of a genuine trade-off go to a decision note through the `write-notes-like-deepseek` skill, which owns the note location, format, verification gate, and archival; when that skill is unavailable, list the decision as a final-report candidate instead of hand-writing a note. Do not duplicate terms or decisions into general memory. Inside a TAV cycle, the capture test above decides whether a decision note is written; `write-notes-like-deepseek` governs only where and how. The note is written in Phase 4, after the change exists (the Thinker stays read-only), and a change that implements an existing proposed note moves it to implemented in the same change.
 5. **An existing instruction surface** (`CLAUDE.md`, `AGENTS.md`, or an existing platform rule file) — high-bar exception, only for a rule that must be unconditionally present in every session. Add at most one line; link to the resolved memory surface for detail.
 
 If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the resolved memory surface; decision notes written through the `write-notes-like-deepseek` skill are the sanctioned exception. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
@@ -339,7 +339,7 @@ Risk escalation is independent from rework counting. A rework iteration can incr
 
 ### Failure counting
 
-The blocker key is `todo_id` (or the gate command) plus a normalized error signature. Only consecutive, unexpected, comparable failures of the same key count; expected TDD RED results, pre-change baseline failures, hypothesis probes, and confirmed environment failures do not. The second consecutive failure emits `[ESCALATION-REPORT]`, requires an independent Verifier when available, and returns to Thinker for a re-plan, which clears the superseded keys. Never reset a counter to avoid escalation. When a failure first repeats, read `references/escalation.md` for the normalization rules, reset semantics, and the report format.
+The blocker key is `todo_id` (or the gate command) plus a normalized error signature: keep the stable part (error code, failing rule or test name) and strip volatile parts (line numbers, file offsets, timestamps), so record `TS2532`, not `TS2532-dashboard.ts:8`, from the first failure on. Only consecutive, unexpected, comparable failures of the same key count; expected TDD RED results, pre-change baseline failures, hypothesis probes, intentionally incomplete intermediate checks, and confirmed environment failures do not. The second consecutive failure emits `[ESCALATION-REPORT]`, requires an independent Verifier when available, and returns to Thinker for a re-plan, which clears the superseded keys. Never reset a counter to avoid escalation. When a failure first repeats, read `references/escalation.md` for the reset semantics and the report format.
 
 ---
 
@@ -379,6 +379,8 @@ Read these on demand, not upfront:
 - `examples/bug-fix.md` - two-iteration loop where Verifier catches an incomplete fix.
 - `examples/rate-limiting.md` - full L1 walkthrough including state file evolution.
 - `examples/refactoring.md` - behavior-preserving extraction with plan-mismatch recovery.
+- `examples/l0-quick-patch.md` - L0 single-pass patch without state or templated phase outputs.
+- `examples/two-strike-escalation.md` - the second consecutive same-key failure and the escalation report.
 
 ---
 

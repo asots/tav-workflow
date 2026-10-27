@@ -12,7 +12,7 @@ When an active (non-tombstone) `docs/progress/MASTER.md` exists and the current 
 - Treat the task card's acceptance criteria and explicit test expectation as the baseline of the verification plan; add stack-appropriate gates on top.
 - Treat the task card's S.U.P.E.R design drivers as additional Verifier check items.
 - Treat the task card's relevant/affected files and dependencies as starting points for Thinker evidence gathering, not as permission to skip affected callers or checks.
-- Treat the task card's delivery-batch ID, delivery shape, and rollback boundary as fixed execution constraints. If a LOCAL_ONLY entry lacks them, return the incomplete task-card evidence to the orchestrator instead of inferring them from the original user request.
+- Treat the task card's delivery-batch ID, delivery shape, and rollback boundary as fixed execution constraints. If a task card (GitHub Issue or LOCAL_ONLY entry) lacks them, return the incomplete task-card evidence to the orchestrator instead of inferring them from the original user request.
 - Treat the task card's memory/governance impact field as pre-declared candidates for Phase 4 knowledge consolidation.
 - If `.tav/state.json` is created, populate `origin.spec_run_id`, `origin.task_card_id`, `origin.delivery_batch_id`, and `origin.rollback_boundary` from the active MASTER and task card; standalone TAV cycles leave these fields null.
 

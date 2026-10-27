@@ -27,7 +27,7 @@ export function getUser(id: number): User | null {
 
 - `git diff`: return type widened, but the required dashboard guard and regression test are absent. This is an unexpected incomplete implementation, not an expected intermediate or TDD RED result, so the failing gate counts toward the blocker key.
 - `pnpm typecheck`: **FAIL** - `src/dashboard.ts:8` - `Object is possibly 'null'.` (TS2532).
-- Blocker key recorded in `failure_counts.by_command`: `pnpm typecheck:TS2532` = 1. A command key contains only the verification command plus the stable error signature; the volatile location (`dashboard.ts:8`) is stripped, per SKILL.md § "Failure counting semantics".
+- Blocker key recorded in `failure_counts.by_command`: `pnpm typecheck:TS2532` = 1. A command key contains only the verification command plus the stable error signature; the volatile location (`dashboard.ts:8`) is stripped, per `references/escalation.md` § "Failure counting semantics".
 - Result: return to Actor with the exact error.
 
 ## Phase 2: Actor (Iteration 2)

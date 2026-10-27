@@ -1,6 +1,6 @@
 # TAV Specialist Branches
 
-This file owns the full contracts and recording rules for the low-frequency specialist branches. `SKILL.md` keeps only the compact triggers and points here, so these details are loaded only when a branch actually fires. The `.tav/state.json` lifecycle and failure keys live in `references/implementation-guide.md`; the phase-output fields live in `references/templates/`.
+This file owns the full contracts and recording rules for the low-frequency specialist branches. `SKILL.md` keeps only the compact triggers and points here, so these details are loaded only when a branch actually fires. The `.tav/state.json` lifecycle lives in `references/implementation-guide.md`, failure keys in `references/escalation.md`; the phase-output fields live in `references/templates/`.
 
 ## Hard-bug diagnosis branch
 

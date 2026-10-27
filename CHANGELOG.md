@@ -1,5 +1,14 @@
 # TAV Workflow Changelog
 
+## Version 3.18.0 (2026-10-27)
+
+### Review fixes: failure keys, decision-note ownership, spec task cards
+
+- **Fixed**: The failure-key normalization rule is inline in the `SKILL.md` two-strike summary, so the first failure is already recorded normalized; previously it was only in `references/escalation.md`, which the agent read after the first repeat. The summary also lists intentionally incomplete intermediate checks among the non-counting failures.
+- **Changed**: Inside a TAV cycle the capture test decides whether a decision note is written; `write-notes-like-deepseek` governs only location, format, and gates. Notes are written in Phase 4, an implemented proposed note moves to implemented in the same change, and the Thinker treats proposed notes as pending intent.
+- **Fixed**: A spec task card of any tracking mode that lacks its delivery shape or rollback boundary is returned to the orchestrator; previously only LOCAL_ONLY entries were.
+- **Fixed**: Stale pointers in `examples/two-strike-escalation.md` and `references/branches.md`; the `SKILL.md` reference list includes all five examples. `tests/scenarios.md` adds rows 16-17.
+
 ## Version 3.17.0 (2026-10-26)
 
 ### Version moved under metadata
