@@ -4,6 +4,10 @@ description: Use for scoped code changes, bug fixes, configuration updates, feat
 license: MIT
 metadata:
   version: 3.20.0
+compatibility:
+  spec-driven-develop: ">=1.29.0"  # spec-tav/v1 handoff contract
+  write-notes-like-deepseek: "*"    # Phase 4 knowledge consolidation
+  open-code-review: ">=1.9.0"       # Verifier Standards axis (delegate mode optional, v1.10.0+)
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -38,7 +42,7 @@ Use this skill to prevent unplanned edits, hidden assumptions, and unverified co
 
 ## Task Tiering
 
-Choose the smallest workflow that is still safe.
+Choose the smallest workflow that is still safe. See `../../shared-references/change-classification.md` for detailed definitions aligned with WNLD and SDD.
 
 | Tier | Scope | Required workflow |
 |------|-------|-------------------|
@@ -61,7 +65,7 @@ A one-line typo, display-text correction, or local metadata change stays L0 only
 
 ### L2 Escalation Signals
 
-Keep this list in sync with `spec-driven-develop` § "Escalation Signals" — both skills must apply the same test. Escalate to L2 only when **at least two** of these hold; otherwise stay at L0/L1:
+Keep this list in sync with `spec-driven-develop` § "Escalation Signals" and `../../shared-references/change-classification.md` — all workflows must apply the same test. Escalate to L2 only when **at least two** of these hold; otherwise stay at L0/L1:
 
 - The change spans 3+ modules/subsystems, or breaks a public API/schema contract.
 - The work will realistically span multiple sessions or exceed ~10 files.
@@ -217,7 +221,29 @@ Machine gates prove that configured checks ran; they do not prove that the right
 1. **Standards** — compare the diff with repository instruction and coding-standard sources. Project rules override generic heuristics. Where tooling does not already enforce the issue, look for judgment-call smells such as unclear naming, duplicated logic, misplaced responsibility, data clumps, repeated conditionals, shotgun/divergent change, speculative generality, long navigation chains, delegation-only middle layers, or inheritance that does not fit. Label heuristics as possible smells, not hard violations.
 2. **Spec** — compare the diff with the task definition and acceptance criteria. Identify requested behavior that is missing or partial, behavior added without authorization, and implementation that appears present but does not satisfy the requirement. Flag a change that contradicts a recorded decision found during Phase 1 evidence gathering (an implemented note, accepted ADR, or rejected approach) unless the task explicitly supersedes it.
 
-Do not merge the axes into one score: a change can satisfy standards while implementing the wrong thing, or satisfy the spec while violating project rules. When independent reviewer agents are available and their cold-start cost is justified, the axes may run in parallel; otherwise the Verifier performs two explicit passes. This review supplements, never replaces, tests, type/lint checks, compatibility review, security review, and configuration/IaC validation. When the `ocr` CLI (open-code-review, v1.9.0 or later) is on PATH, the Standards axis uses its delegate mode to select the reviewable files and their rule groups; see `references/implementation-guide.md` § "Two-axis review mechanics".
+Do not merge the axes into one score: a change can satisfy standards while implementing the wrong thing, or satisfy the spec while violating project rules. When independent reviewer agents are available and their cold-start cost is justified, the axes may run in parallel; otherwise the Verifier performs two explicit passes. This review supplements, never replaces, tests, type/lint checks, compatibility review, security review, and configuration/IaC validation.
+
+**OCR Integration for Standards Axis**:
+
+When the `ocr` CLI (open-code-review v1.9.0+) is available, use it for the Standards axis:
+
+```bash
+# Extract context from Thinker output
+context="Task: <task description>. Root cause: <diagnosis summary>"
+
+# Run OCR with business context
+ocr review --audience agent \
+  --background "$context" \
+  --output /tmp/ocr_standards.json
+```
+
+Filter OCR output by severity:
+- `critical` → escalate TAV to critical risk, block completion
+- `high` → must fix before Verifier approval
+- `medium` → fix or document as known limitation
+- `low` → discard as likely false positive
+
+See `../../open-code-review/skills/open-code-review/SKILL.md` § "Integration with TAV and Spec-Driven Development" for detailed invocation patterns and the `references/implementation-guide.md` § "Two-axis review mechanics" for delegate mode usage (v1.10.0+).
 
 ### Security-sensitive branch
 
