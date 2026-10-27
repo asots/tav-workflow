@@ -1,5 +1,16 @@
 # TAV Workflow Changelog
 
+## Version 3.20.0 (2026-10-27)
+
+### Review fixes: untracked files, Phase 0 scope, recorded decisions
+
+- **Fixed**: The Verifier reads `git status --porcelain` alongside `git diff` and reads untracked files in full; `git diff` alone missed files the Actor created. Created-file counts come from the untracked entries, and the refactoring example's change summary now matches its file list.
+- **Fixed**: Phase 0's `docs/progress/MASTER.md` check runs for every tier, including L0; only the state-file checks stay L1-only. An archived tombstone's pending operations block only a request to continue that archived run. With no orchestrator running, TAV stops and points the user to `spec-driven-develop`. Unrelated requests run standalone and report the pending operations.
+- **Added**: The Spec axis flags a change that contradicts a recorded decision unless the task explicitly supersedes it. The decision-record search names `rg --hidden` only as an example.
+- **Added**: Thinker template section Design Prototype; Verifier template sections Prototype Residue and Risk and Independence. The three full L1 examples fill them.
+- **Added**: Regression scenarios 20-25 for the rules above.
+- **Changed**: `scripts/verify.ps1` checks `references/` and `examples/` against `SKILL.md` in both directions instead of a fixed list. It also resolves every quoted section citation and checks the L2 threshold wording and the tombstone fields. It checks the decision-note contract against a sibling `write-notes-like-deepseek` checkout (`-DshPath`); CI checks that repository out.
+
 ## Version 3.19.0 (2026-10-27)
 
 ### Optional open-code-review in the Verifier

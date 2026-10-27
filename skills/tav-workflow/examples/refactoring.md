@@ -31,6 +31,9 @@ Phase 1 -> Analyzing
 ### Test Seam
 - `tests/services/orderService.test.ts` exercises the public `processOrder` boundary and its payment/inventory effects; it is the highest stable seam and avoids coupling tests to extracted private functions.
 
+### Design Prototype
+- Not applicable: a behavior-preserving extraction leaves no design question open.
+
 ### Todo List
 1. `src/services/orderService.ts` - extract `validateOrder` (lines 45-70).
 2. `src/services/orderService.ts` - extract `checkInventory` (71-95).
@@ -139,6 +142,9 @@ Phase 3 -> Reviewing
 ### Hard-Bug Closure
 - Not applicable.
 
+### Prototype Residue
+- Not applicable.
+
 ### Commands Run
 - `npm test -- orderService` - passed (24 tests).
 - `npm run typecheck` - passed.
@@ -156,11 +162,15 @@ Phase 3 -> Reviewing
 ### Consolidation Candidates
 - None. Extraction boundaries and the behavior-contract rule are visible in the code and tests; nothing here outlives the task (zero captures is the default outcome).
 
+### Risk and Independence
+- Risk level: high, unchanged from Thinker (payment and inventory logic).
+- Verifier independence: the payment surface calls for an independent reviewer agent when the platform provides one; otherwise the main agent runs Standards and Spec as separate explicit passes.
+
 ### Review Result
 - Pass and enter Phase 4.
 
 ### Change Summary
-- Files modified: 1, files created: 1 (from `git diff --stat`)
+- Files modified: 2 (from `git diff --stat`); files created: 0 (from `git status --porcelain`)
 - Lines changed: +280 -201 (from `git diff --stat`)
 - Scope: extraction refactor, behavior preserved
 ```

@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.19.0
+**Version**: 3.20.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](skills/tav-workflow/SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -19,7 +19,7 @@ Use TAV when a request changes code, configuration, dependencies, tests, workflo
 User request: "Fix the checkout validation bug"
 
 TAV workflow:
-1. Phase 0 checks `.tav/state.json` for resumable work (L1 only, skipped for L0).
+1. Phase 0 checks `docs/progress/MASTER.md` for an active or archived Spec-Driven plan (every tier) and `.tav/state.json` for resumable work (L1 only).
 2. Thinker gathers evidence and writes an atomic plan.
 3. Actor applies only the planned changes.
 4. Verifier reviews the real diff, runs stack-appropriate checks, and looks for side effects.
@@ -70,8 +70,9 @@ TAV workflow:
 ```text
 User request
     |
-Phase 0: Continuity Check (L1 only)
-    |-- load `.tav/state.json` when relevant and fresh
+Phase 0: Continuity Check
+    |-- every tier: check `docs/progress/MASTER.md` for an active or archived plan
+    |-- L1: load `.tav/state.json` when relevant and fresh
     |
 Phase 1: Thinker
     |-- evidence, diagnosis, hard-bug feedback loop when needed
@@ -123,5 +124,5 @@ If `docs/memory/` is selected as the repository's memory surface, commit it with
 
 ---
 
-**TAV Workflow v3.19.0**
+**TAV Workflow v3.20.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

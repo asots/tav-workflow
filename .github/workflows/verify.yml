@@ -1,6 +1,7 @@
 # Runs both repositories' self-checks against sibling checkouts, so a change on either
 # side of the spec-tav/v1 contract fails here instead of after release. spec-driven-develop
-# runs the same checks in its own workflow.
+# runs the same checks in its own workflow. The write-notes-like-deepseek checkout feeds
+# the decision-note contract checks.
 name: Verify
 
 on:
@@ -26,6 +27,12 @@ jobs:
         with:
           repository: asots/spec_driven_develop
           path: spec-driven-develop
+
+      - name: Checkout write-notes-like-deepseek
+        uses: actions/checkout@v7
+        with:
+          repository: asots/write-notes-like-deepseek
+          path: write-notes-like-deepseek
 
       - name: tav-workflow self-check
         shell: pwsh

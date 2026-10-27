@@ -6,7 +6,7 @@
 
 TAV（Think-Act-Verify，思考-执行-验证）是一个面向范围明确的软件变更的结构化工作流。它将分析、执行、验证三种职责分离，确保每一次非平凡的修改都基于证据、保持最小化、并在宣告完成前经过独立检查。
 
-**版本**：3.19.0
+**版本**：3.20.0
 **状态**：Stable
 
 权威规范位于 [SKILL.md](skills/tav-workflow/SKILL.md)。本 README 面向读者提供概览；schema、命令表、输出契约只在 skill 文件中定义一次，此处仅作引用。
@@ -19,7 +19,7 @@ TAV（Think-Act-Verify，思考-执行-验证）是一个面向范围明确的�
 用户请求："修复结算校验的 bug"
 
 TAV 工作流：
-1. Phase 0 检查 `.tav/state.json` 是否有可恢复的工作（仅 L1，L0 跳过）。
+1. Phase 0 检查 `docs/progress/MASTER.md` 中是否有进行中或已归档的 Spec-Driven 计划（所有层级），并检查 `.tav/state.json` 是否有可恢复的工作（仅 L1）。
 2. Thinker 收集证据并写出原子化计划。
 3. Actor 只执行计划内的修改。
 4. Verifier 审查真实 diff，运行与技术栈匹配的检查，排查副作用。
@@ -70,8 +70,9 @@ TAV 工作流：
 ```text
 用户请求
     |
-Phase 0: 连续性检查（仅 L1）
-    |-- 相关且未过期时加载 `.tav/state.json`
+Phase 0: 连续性检查
+    |-- 所有层级：检查 `docs/progress/MASTER.md` 中进行中或已归档的计划
+    |-- L1：相关且未过期时加载 `.tav/state.json`
     |
 Phase 1: Thinker
     |-- 证据、诊断，必要时建立困难故障反馈环
@@ -123,5 +124,5 @@ Phase 4: Completion
 
 ---
 
-**TAV Workflow v3.19.0**
+**TAV Workflow v3.20.0**
 *Think-Act-Verify：基于证据的变更、最小化执行、经验证的完成。*

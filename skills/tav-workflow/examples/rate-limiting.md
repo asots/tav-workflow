@@ -38,6 +38,9 @@ Phase 1 -> Analyzing
 ### Test Seam
 - `tests/api/auth.test.ts` exercises the public login HTTP route with the configured Redis-backed limiter; it can prove the sixth attempt returns 429 while the OAuth callback remains unaffected.
 
+### Design Prototype
+- Not applicable: the user-approved fail-closed policy and the limiter API settle the design; no design question is open.
+
 ### Todo List
 1. `package.json` - add `express-rate-limit` and `rate-limit-redis` (versions from registry).
 2. `src/middleware/rateLimiter.ts` - create `loginLimiter` using the existing Redis client, standard headers on, 429 handler.
@@ -60,7 +63,7 @@ Phase 1 -> Analyzing
 
 ```json
 {
-  "version": "3.19.0",
+  "version": "3.20.0",
   "task_id": "tav-20260706-083000",
   "user_request": "Add rate limiting to the user login API to prevent brute force attacks",
   "task_tier": "L1",
@@ -145,7 +148,7 @@ State after Actor: `current_phase` -> `"verifier"`, all todo items `"status": "d
 Phase 3 -> Reviewing
 
 ### Diff Reviewed
-- `git diff` shows 3 modified files + 1 new middleware file; no unrelated changes.
+- `git diff` shows 3 modified files and `git status --porcelain` shows 1 untracked middleware file, read in full; no unrelated changes.
 
 ### Verification Items
 
@@ -170,6 +173,9 @@ Phase 3 -> Reviewing
 ### Hard-Bug Closure
 - Not applicable.
 
+### Prototype Residue
+- Not applicable.
+
 ### Commands Run
 - `npm run lint` - passed.
 - `npm run typecheck` - passed.
@@ -187,12 +193,16 @@ Phase 3 -> Reviewing
 ### Consolidation Candidates
 - None. The Redis policy is recorded in the task definition, and the OAuth exemption is derivable from the route structure (never-capture: code-derivable facts).
 
+### Risk and Independence
+- Risk level: high, unchanged from Thinker (authentication surface).
+- Verifier independence: the security-sensitive surface calls for an independent reviewer agent when the platform provides one; otherwise the main agent runs Standards and Spec as separate explicit passes.
+
 ### Review Result
 - Pass and enter Phase 4.
 
 ### Change Summary
-- Files modified: 3, files created: 1 (from `git diff --stat`)
-- Lines changed: +52 -1 (from `git diff --stat`)
+- Files modified: 3 (from `git diff --stat`); files created: 1 (from `git status --porcelain`)
+- Lines changed: +52 -1 (from `git diff --stat`, plus the created file's lines)
 - Scope: login rate limiting with Redis-backed store
 ```
 

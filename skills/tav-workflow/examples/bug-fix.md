@@ -32,6 +32,9 @@ Phase 1 -> Analyzing
 ### Test Seam
 - The API integration tests with a post-request database re-read are the highest stable public boundary that proves persistence rather than response-only success.
 
+### Design Prototype
+- Not applicable: repository evidence settles the fix; no design question is open.
+
 ### Todo List
 1. `src/api/user.ts:100` - add `await` before `user.save()`.
 2. `src/api/admin.ts:234` - add `await` before `user.save()` (same defect).
@@ -115,6 +118,9 @@ Phase 3 -> Reviewing
 ### Hard-Bug Closure
 - Not applicable.
 
+### Prototype Residue
+- Not applicable.
+
 ### Commands Run
 - `npm test` - FAILED: `Expected: "New Name" / Received: "Old Name"` in both new assertions.
 
@@ -130,11 +136,15 @@ Phase 3 -> Reviewing
 ### Consolidation Candidates
 - Deep mutations beneath a `Schema.Types.Mixed` path require `markModified('profile')` before `save()`. This does not apply to ordinary declared schema paths. Evidence: iteration-1 database re-read failure after the missing `await` was fixed. (Capture signal: non-obvious root cause.)
 
+### Risk and Independence
+- Risk level: high, unchanged from Thinker (possible production data loss).
+- Verifier independence: high risk calls for an independent reviewer agent when the platform provides one; otherwise the main agent runs Standards and Spec as separate explicit passes.
+
 ### Review Result
 - Return to Actor with the fix above.
 
 ### Change Summary
-- Files modified: 4 (from `git diff --stat`)
+- Files modified: 4 (from `git diff --stat`); files created: 0 (from `git status --porcelain`)
 - Lines changed: +8 -2 (from `git diff --stat`)
 - Scope: incomplete persistence fix plus database-state regression assertions
 ```
@@ -216,6 +226,9 @@ Phase 3 (iteration 2) -> Reviewing
 ### Hard-Bug Closure
 - Not applicable.
 
+### Prototype Residue
+- Not applicable.
+
 ### Commands Run
 - `npm test` - PASS: `Tests: 5 passed, 5 total`.
 
@@ -231,11 +244,15 @@ Phase 3 (iteration 2) -> Reviewing
 ### Consolidation Candidates
 - Carried from iteration 1: deep mutations beneath Mongoose `Mixed` paths require an explicit `markModified`, now confirmed by the passing fix.
 
+### Risk and Independence
+- Risk level: high, unchanged; the rework touched no new surface.
+- Verifier independence: as in iteration 1, plus the explicit side-effect review a first rework iteration requires.
+
 ### Review Result
 - Pass and enter Phase 4.
 
 ### Change Summary
-- Files modified: 4 (from `git diff --stat`)
+- Files modified: 4 (from `git diff --stat`); files created: 0 (from `git status --porcelain`)
 - Lines changed: +12 -16 (from `git diff --stat`)
 - Scope: profile/admin update persistence fix plus strengthened tests
 ```

@@ -5,7 +5,7 @@ This guide covers operational details that go beyond the specification in `SKILL
 ## Operating Model
 
 ```text
-Phase 0: Continuity Check - L1 only; resume or initialize durable state
+Phase 0: Continuity Check - every tier checks MASTER.md; L1 resumes or initializes durable state
 Phase 1: Thinker  - read-only analysis and plan
 Phase 2: Actor    - minimal planned edits
 Phase 3: Verifier - diff review, independent checks, quality gates
@@ -55,7 +55,7 @@ Otherwise rely on the platform's native task tracker. L0 tasks never create stat
 
 Report only measurable facts:
 
-- `files_modified`, `files_created`, `lines_added`, `lines_removed`: take from `git diff --stat` (or the VCS equivalent).
+- `files_modified`, `lines_added`, `lines_removed`: take from `git diff --stat` (or the VCS equivalent). `files_created`: count the untracked (`??`) entries in `git status --porcelain` and add their line counts to `lines_added`; `git diff` does not report untracked files.
 - `iterations`: count of Actor-Verifier loops actually executed.
 - Never estimate or invent token usage, cost, or wall-clock duration. These are not observable from inside the session and must not appear in state files or reports.
 
@@ -78,7 +78,7 @@ Report only measurable facts:
 
 ### Verifier
 
-- Start from `git diff`, not from the Actor's summary.
+- Start from `git diff` and `git status --porcelain`, not from the Actor's summary; read untracked files in full.
 - Pick verification commands only after inspecting project files; the evidence-to-command table is in `references/verification-commands.md`.
 - Do not claim a check passed unless it ran and succeeded. Record unavailable commands under skipped checks.
 - Flag consolidation candidates while reviewing — rework lessons and non-obvious root causes surface here, not in Phase 4. Evaluation and capture happen in Phase 4 against the signals in `SKILL.md`.

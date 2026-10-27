@@ -3,7 +3,7 @@ name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
 license: MIT
 metadata:
-  version: 3.19.0
+  version: 3.20.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -92,7 +92,7 @@ Without cleanup authorization, leave task state at `current_phase: complete`, se
 
 ## Phase 0: Continuity Check
 
-Skip this phase entirely for L0 tasks.
+Every tier, including L0, runs the `docs/progress/MASTER.md` check below. L0 skips only the state-file checks: it never creates or resumes `.tav/state.json`.
 
 For L1 tasks, check for `.tav/state.json` in the target project root before any analysis or edits. If multiple L1 tasks are running concurrently in the same project, use a task-scoped state file named `.tav/state-<task_id>.json` instead, and resume only from the file whose `task_id` matches the current request.
 
@@ -101,7 +101,7 @@ For L1 tasks, check for `.tav/state.json` in the target project root before any 
 - If it describes a different task, ask the user before replacing or archiving it.
 - If it does not exist, start fresh.
 
-Also check for `docs/progress/MASTER.md` in the target project. If it contains the exact `**Workflow State**: archived` marker, it is a Spec-Driven tombstone rather than an active plan: when `Pending Operations` is `none`, do not enter spec-driven task mode; when pending operations are listed, return the archive pointer and exact next action to the Spec-Driven orchestrator instead of starting or resuming a TAV task. Otherwise, if MASTER exists and the current task belongs to that active plan, follow `references/spec-driven-interop.md` for task intake, write-back, and state ownership.
+For every tier, also check for `docs/progress/MASTER.md` in the target project. If it contains the exact `**Workflow State**: archived` marker, it is a Spec-Driven tombstone rather than an active plan, and TAV never enters spec-driven task mode from it. When `Pending Operations` is `none`, the current request proceeds as a standalone TAV task. When pending operations are listed, they block only a request to continue or finish that archived run: return the archive pointer and exact next action to the Spec-Driven orchestrator, or, when no orchestrator is running, stop and tell the user to resume the run with `spec-driven-develop`; never perform the pending operations inside a TAV cycle. An unrelated request proceeds as a standalone TAV task and lists the pending operations in the final report. Otherwise, if MASTER exists and the current task belongs to that active plan, follow `references/spec-driven-interop.md` for task intake, write-back, and state ownership.
 
 When a resumable TAV state has a non-null `origin.spec_run_id`, confirm that its run ID, task-card ID, delivery-batch ID, and rollback boundary still match the active MASTER/task card before resuming. A mismatch is different-task evidence: ask before replacing or archiving the state; never silently attach it to another plan.
 
@@ -137,7 +137,7 @@ In Claude Code, when native plan mode is active, run the Thinker phase inside it
 - Prefer targeted reads and searches over broad file dumps.
 - If the project has a memory index (`docs/memory/MEMORY.md`), read **only the index lines** (one hook per entry) and shortlist entries whose hook mentions the task's files, modules, or topic. Open only the shortlisted entry files, then use their `applies_to`/`tags` frontmatter to confirm relevance and discard mismatches — previously captured knowledge is first-class evidence, but loading every entry wastes context. If a recalled entry contradicts the current code or reality, flag it as a stale-entry candidate for Phase 4 (update or delete).
 - If the project has a domain glossary (`CONTEXT.md`, or a `CONTEXT-MAP.md` pointing at per-context glossaries), read the entries relevant to the task and use the canonical terms in the diagnosis, todo items, and any new names. When the user's phrasing, the glossary, and the code disagree, surface the contradiction instead of silently picking one side; term resolution routes through the `domain-modeling` skill when available, and decision recording follows the Phase 4 write targets. When that skill is unavailable, apply the same evidence-first terminology challenge directly and return any confirmed glossary or decision write-back candidate for Phase 4.
-- If the project keeps decision records (decision notes under `.agents/notes/`, or an ADR directory such as `docs/adr/`), search them for the touched modules and mechanism names before planning; `.agents/` is hidden, so use `rg --hidden` and skip `.agents/notes/archived/`. Treat implemented notes and accepted ADRs as constraints, proposed notes for the touched modules as pending intent (when the task implements one, Phase 4 moves it to implemented), and rejected notes as approaches not to re-propose unless new evidence removes the reason they were rejected. When the requested change contradicts a recorded decision, surface the conflict instead of silently overriding it.
+- If the project keeps decision records (decision notes under `.agents/notes/`, or an ADR directory such as `docs/adr/`), search them for the touched modules and mechanism names before planning; `.agents/` is hidden, so include hidden paths in the search (for example `rg --hidden`) and skip `.agents/notes/archived/`. Treat implemented notes and accepted ADRs as constraints, proposed notes for the touched modules as pending intent (when the task implements one, Phase 4 moves it to implemented), and rejected notes as approaches not to re-propose unless new evidence removes the reason they were rejected. When the requested change contradicts a recorded decision, surface the conflict instead of silently overriding it.
 - If the project has CodeGraph available, use it before grep-style exploration.
 - Do not invent file paths, commands, package managers, or test scripts.
 - Stop exploring once the todo list can be written at file-level precision — evidence gathering serves the plan, not completeness.
@@ -152,7 +152,7 @@ Use this branch when a plan decision hinges on how a state model, interaction, o
 
 ### Required Thinker output
 
-For every L1 cycle, read and fill `references/templates/thinker-output.md`. That template is the canonical Thinker output schema; do not replace it with an abbreviated inline format. Mark non-applicable hard-bug and test-seam fields explicitly rather than omitting them.
+For every L1 cycle, read and fill `references/templates/thinker-output.md`. That template is the canonical Thinker output schema; do not replace it with an abbreviated inline format. Mark non-applicable hard-bug, test-seam, and design-prototype fields explicitly rather than omitting them.
 
 After Thinker completes, update native task tracking (and `.tav/state.json` if it exists).
 
@@ -195,7 +195,7 @@ Verifier checks the change independently. Do not rely on Actor's summary.
 
 ### Required actions
 
-1. Run `git diff` (or the VCS equivalent) first and review the actual changes, not the reported ones.
+1. Run `git diff` and `git status --porcelain` (or the VCS equivalents) first and review the actual changes, not the reported ones. `git diff` does not show untracked files; read every new (`??`) file in full.
 2. Check surrounding code and references affected by the change.
 3. Treat Thinker's `verification plan` as candidate commands; confirm each still matches the project stack (re-read the evidence if unsure), run them, and add any stack-appropriate checks Thinker missed. Do not silently re-derive the whole list from scratch.
 4. Check security-sensitive surfaces when relevant.
@@ -215,7 +215,7 @@ If no reliable command exists, state that explicitly under failed or unexecuted 
 Machine gates prove that configured checks ran; they do not prove that the right change was made. Review the actual diff through two independent axes:
 
 1. **Standards** — compare the diff with repository instruction and coding-standard sources. Project rules override generic heuristics. Where tooling does not already enforce the issue, look for judgment-call smells such as unclear naming, duplicated logic, misplaced responsibility, data clumps, repeated conditionals, shotgun/divergent change, speculative generality, long navigation chains, delegation-only middle layers, or inheritance that does not fit. Label heuristics as possible smells, not hard violations.
-2. **Spec** — compare the diff with the task definition and acceptance criteria. Identify requested behavior that is missing or partial, behavior added without authorization, and implementation that appears present but does not satisfy the requirement.
+2. **Spec** — compare the diff with the task definition and acceptance criteria. Identify requested behavior that is missing or partial, behavior added without authorization, and implementation that appears present but does not satisfy the requirement. Flag a change that contradicts a recorded decision found during Phase 1 evidence gathering (an implemented note, accepted ADR, or rejected approach) unless the task explicitly supersedes it.
 
 Do not merge the axes into one score: a change can satisfy standards while implementing the wrong thing, or satisfy the spec while violating project rules. When independent reviewer agents are available and their cold-start cost is justified, the axes may run in parallel; otherwise the Verifier performs two explicit passes. This review supplements, never replaces, tests, type/lint checks, compatibility review, security review, and configuration/IaC validation. When the `ocr` CLI (open-code-review, v1.9.0 or later) is on PATH, the Standards axis uses its delegate mode to select the reviewable files and their rule groups; see `references/implementation-guide.md` § "Two-axis review mechanics".
 
@@ -272,7 +272,7 @@ If the knowledge fits none of these, list the candidate in the final report. Do 
 
 ### Post-consolidation verification
 
-When Phase 4 writes or updates a memory, instruction, glossary, or decision-note surface, rerun `git diff` after that write, inspect the newly changed hunk, and run the narrowest available documentation/static validation. Recheck the added material for secrets and sensitive evidence. The Phase 3 verdict covers the implementation diff; do not claim it automatically verifies documentation written afterwards.
+When Phase 4 writes or updates a memory, instruction, glossary, or decision-note surface, rerun `git diff` and `git status --porcelain` after that write, inspect the newly changed hunk or file, and run the narrowest available documentation/static validation. Recheck the added material for secrets and sensitive evidence. The Phase 3 verdict covers the implementation diff; do not claim it automatically verifies documentation written afterwards.
 
 ### Final report
 
@@ -305,7 +305,7 @@ When knowledge consolidation wrote to a memory or instruction surface, append th
 - `surface or file` - rule captured, one line per rule.
 ```
 
-Report only measurable facts. File and line counts come from `git diff --stat`; never estimate token usage or wall-clock duration.
+Report only measurable facts. File and line counts come from `git diff --stat` plus the untracked (`??`) files in `git status --porcelain`; never estimate token usage or wall-clock duration.
 
 In a spec-driven project (see `references/spec-driven-interop.md`), completion additionally requires a handoff. In orchestrator-direct execution, the orchestrator records authorized project-level progress and execution events; in a lane or delegated assignment, return the write-back payload and do not mark the project task complete yourself. Knowledge consolidation, when it fires, is returned as a candidate and routes through the governance surfaces resolved in MASTER.md.
 

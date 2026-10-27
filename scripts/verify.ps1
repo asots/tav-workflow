@@ -1,24 +1,35 @@
 #requires -Version 5.1
 # TAV Workflow documentation self-check (structural invariants only).
 # Verifies version consistency (single source = SKILL.md frontmatter), README link
-# integrity, required-file existence, state.json validity, regression-scenario citations,
-# and the cross-repo spec-tav/v1 contract. The skill lives in skills/tav-workflow/.
-# Run: pwsh scripts/verify.ps1 [-SpecPath <path-to-spec-driven-develop-repo>]
+# integrity, two-way SKILL.md file references, state.json validity, section citations,
+# the cross-repo spec-tav/v1 contract, and the decision-note contract shared with
+# write-notes-like-deepseek. The skill lives in skills/tav-workflow/.
+# Run: pwsh scripts/verify.ps1 [-SpecPath <spec-driven-develop-repo>] [-DshPath <write-notes-like-deepseek-repo>]
 
 param(
-  [string]$SpecPath = ''
+  [string]$SpecPath = '',
+  [string]$DshPath = ''
 )
 
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 if ($SpecPath -eq '') { $SpecPath = Join-Path (Split-Path -Parent $root) 'spec-driven-develop' }
+if ($DshPath -eq '') { $DshPath = Join-Path (Split-Path -Parent $root) 'write-notes-like-deepseek' }
 $skillDir = Join-Path $root 'skills/tav-workflow'
 $script:fail = 0
 
 function Fail($msg) { Write-Host "FAIL: $msg" -ForegroundColor Red; $script:fail++ }
 function Ok($msg)   { Write-Host "OK:   $msg" -ForegroundColor Green }
 function Read-Text([string]$path) { Get-Content $path -Raw -Encoding UTF8 }
+
+# True when $text has a heading named exactly $anchor (optionally followed by a
+# parenthetical qualifier), or a line-leading label, plain or bold, then ':' or '('.
+function Test-Anchor([string]$text, [string]$anchor) {
+  $a = [regex]::Escape($anchor)
+  if ($text -match ('(?m)^#{1,6}\s+' + $a + '(\s+\([^)]*\))?\s*$')) { return $true }
+  return ($text -match ('(?m)^\s*(?:[-*]\s+|\d+\.\s+)?(?:\*\*)?' + $a + '(?:\*\*)?\s*[:(]'))
+}
 
 # 1. SKILL.md frontmatter metadata.version is the single source of truth
 $skill = Read-Text (Join-Path $skillDir 'SKILL.md')
@@ -82,12 +93,19 @@ foreach ($r in 'README.md','README.zh-CN.md') {
   if ($script:fail -eq $failsBefore) { Ok "$r internal links resolved" }
 }
 
-# 4. Files referenced from SKILL.md exist
+# 4. SKILL.md and the references/ + examples/ trees agree in both directions: every
+# named file exists, and every file on disk is named (an unnamed file is unreachable)
 $failsBefore = $script:fail
-foreach ($req in 'references/branches.md','references/escalation.md','references/spec-driven-interop.md','references/templates/state.json','references/templates/thinker-output.md','references/templates/actor-output.md','references/templates/verifier-output.md','references/implementation-guide.md','references/verification-commands.md') {
-  if (-not (Test-Path (Join-Path $skillDir $req))) { Fail "missing referenced file: $req" }
+$named = @([regex]::Matches($skill, '(?:references|examples)/[\w\-./]+\.(?:md|json)') | ForEach-Object { $_.Value } | Sort-Object -Unique)
+foreach ($n in $named) {
+  if (-not (Test-Path (Join-Path $skillDir $n))) { Fail "SKILL.md names missing file: $n" }
 }
-if ($script:fail -eq $failsBefore) { Ok 'referenced files exist' }
+$base = (Resolve-Path $skillDir).Path.TrimEnd('\', '/')
+foreach ($f in Get-ChildItem -Path @((Join-Path $skillDir 'references'), (Join-Path $skillDir 'examples')) -Recurse -File) {
+  $rel = $f.FullName.Substring($base.Length + 1) -replace '\\', '/'
+  if ($named -notcontains $rel) { Fail "file not named in SKILL.md: $rel" }
+}
+if ($script:fail -eq $failsBefore) { Ok "SKILL.md names all $($named.Count) references/examples files, and all exist" }
 
 # 5. Every rule cited in tests/scenarios.md names a heading that still exists
 $sect = [string][char]0x00A7  # section sign, kept out of literals for ANSI-codepage safety
@@ -99,10 +117,29 @@ else {
     $file = Join-Path $skillDir $row.Groups[1].Value
     $heading = $row.Groups[2].Value
     if (-not (Test-Path $file)) { Fail "scenario cites missing file: $($row.Groups[1].Value)" }
-    elseif ((Read-Text $file) -notmatch ('(?m)^#{1,6}\s+' + [regex]::Escape($heading) + '\s*$')) { Fail "scenario cites missing heading: $($row.Groups[1].Value) '$heading'" }
+    elseif (-not (Test-Anchor (Read-Text $file) $heading)) { Fail "scenario cites missing heading: $($row.Groups[1].Value) '$heading'" }
   }
   if ($script:fail -eq $failsBefore) { Ok "tests/scenarios.md: $($rows.Count) rule citations resolve" }
 }
+
+# 5b. Every quoted section citation inside the skill resolves: `references/x.md` "Name"
+# or `SKILL.md` <section sign> "Name" (several names may follow one path, joined by and/or/commas)
+$cite = '`((?:references|examples)/[\w\-./]+\.md|SKILL\.md)`\s*(?:' + $sect + '\s*)?((?:"[^"\r\n]+"(?:\s*(?:,|and|or)\s*)?)+)'
+$docs = @(Get-Item (Join-Path $skillDir 'SKILL.md')) + @(Get-ChildItem -Path @((Join-Path $skillDir 'references'), (Join-Path $skillDir 'examples')) -Recurse -Filter '*.md')
+$failsBefore = $script:fail
+$citeCount = 0
+foreach ($doc in $docs) {
+  foreach ($m in [regex]::Matches((Read-Text $doc.FullName), $cite)) {
+    $target = Join-Path $skillDir $m.Groups[1].Value
+    if (-not (Test-Path $target)) { Fail "$($doc.Name) cites missing file: $($m.Groups[1].Value)"; continue }
+    $targetText = Read-Text $target
+    foreach ($q in [regex]::Matches($m.Groups[2].Value, '"([^"]+)"')) {
+      $citeCount++
+      if (-not (Test-Anchor $targetText $q.Groups[1].Value)) { Fail "$($doc.Name) cites missing section: $($m.Groups[1].Value) '$($q.Groups[1].Value)'" }
+    }
+  }
+}
+if ($script:fail -eq $failsBefore) { Ok "$citeCount section citations in SKILL.md, references/, and examples/ resolve" }
 
 # 6. Cross-repo handoff contract with spec-driven-develop
 $specSkillPath = Join-Path $SpecPath 'plugins/spec-driven-develop/skills/spec-driven-develop/SKILL.md'
@@ -135,6 +172,55 @@ if (-not (Test-Path $specSkillPath)) {
     if ($tavState -ne $specState) { Fail 'state ownership block differs across repos' }
     else { Ok 'three-layer state ownership block is mirrored across repos' }
   }
+
+  # L2 needs at least two signals: the routing descriptions and both signal sentences
+  $specFront = if ($specSkill -match '(?s)^---\r?\n(.*?)\r?\n---') { $Matches[1] } else { '' }
+  $failsBefore = $script:fail
+  if (-not $frontmatter.Contains('at least two')) { Fail 'tav description lost the at-least-two L2 threshold' }
+  if (-not $specFront.Contains('at least two')) { Fail 'spec description lost the at-least-two L2 threshold' }
+  if (-not $skill.Contains('Escalate to L2 only when **at least two** of these hold')) { Fail 'tav L2 signal sentence lost its at-least-two threshold' }
+  if (-not $specSkill.Contains('only when **at least two** of these hold')) { Fail 'spec L2 signal sentence lost its at-least-two threshold' }
+  if ($script:fail -eq $failsBefore) { Ok 'at-least-two L2 threshold holds in both descriptions and signal sentences' }
+
+  # Phase 0 must name the tombstone fields that spec's progress template defines
+  $phase0 = [regex]::Match($skill, '(?ms)^## Phase 0: Continuity Check.*?(?=^## )').Value
+  $progressPath = Join-Path $SpecPath 'plugins/spec-driven-develop/skills/spec-driven-develop/references/templates/progress.md'
+  $progress = if (Test-Path $progressPath) { Read-Text $progressPath } else { '' }
+  $failsBefore = $script:fail
+  foreach ($fp in '**Workflow State**: archived', 'Pending Operations') {
+    if (-not $phase0.Contains($fp)) { Fail "tav Phase 0 missing tombstone fingerprint: '$fp'" }
+    if (-not $progress.Contains($fp)) { Fail "spec progress template missing tombstone fingerprint: '$fp'" }
+  }
+  if ($script:fail -eq $failsBefore) { Ok 'tombstone fields match between tav Phase 0 and the spec progress template' }
+}
+
+# 7. Decision-note contract with write-notes-like-deepseek: every .agents/notes/<folder>/
+# this skill names must be a lifecycle (or the archive) that DSH's tree gate accepts
+$dshSkillDir = Join-Path $DshPath 'skills/write-notes-like-deepseek'
+$dshTreePath = Join-Path $dshSkillDir 'scripts/agent-note-tree.ts'
+if (-not (Test-Path $dshTreePath)) {
+  $msg = "write-notes-like-deepseek not found at '$DshPath' - decision-note contract checks skipped (pass -DshPath to enable)"
+  if ($env:CI -eq 'true') { Fail $msg } else { Write-Host "WARN: $msg" -ForegroundColor Yellow }
+} else {
+  $tree = Read-Text $dshTreePath
+  $failsBefore = $script:fail
+  if ((Read-Text (Join-Path $dshSkillDir 'SKILL.md')) -notmatch '(?m)^name:\s*write-notes-like-deepseek\s*$') { Fail 'DSH SKILL.md name is no longer write-notes-like-deepseek' }
+  if (-not $tree.Contains("'.agents/notes'")) { Fail 'DSH tree gate no longer defaults to .agents/notes' }
+  $life = [regex]::Match($tree, 'AGENT_NOTE_LIFECYCLES\s*=\s*\[([^\]]*)\]')
+  $arch = [regex]::Match($tree, 'AGENT_NOTE_ARCHIVE\s*=\s*''([^'']+)''')
+  if (-not $life.Success -or -not $arch.Success) { Fail 'DSH tree gate lifecycle or archive constant not found' }
+  else {
+    $allowed = @([regex]::Matches($life.Groups[1].Value, '''([^'']+)''') | ForEach-Object { $_.Groups[1].Value }) + $arch.Groups[1].Value
+    foreach ($l in 'proposed', 'implemented', 'rejected', 'archived') {
+      if ($allowed -notcontains $l) { Fail "DSH tree gate no longer accepts '$l', which the TAV decision-record rules name" }
+    }
+    foreach ($doc in $docs) {
+      foreach ($m in [regex]::Matches((Read-Text $doc.FullName), '\.agents/notes/([a-z-]+)/')) {
+        if ($allowed -notcontains $m.Groups[1].Value) { Fail "$($doc.Name) names unknown decision-note folder: .agents/notes/$($m.Groups[1].Value)/" }
+      }
+    }
+  }
+  if ($script:fail -eq $failsBefore) { Ok 'decision-note folders and lifecycles match the write-notes-like-deepseek tree gate' }
 }
 
 if ($script:fail -gt 0) { Write-Host "`n$($script:fail) check(s) FAILED" -ForegroundColor Red; exit 1 }

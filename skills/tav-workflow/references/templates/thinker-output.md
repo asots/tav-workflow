@@ -27,6 +27,12 @@ Phase 1 -> Analyzing
 ### Test Seam
 - Highest stable public boundary that proves the behavior, or explicit reason no correct seam exists.
 
+### Design Prototype
+<!-- Use when the design-prototype branch applies; otherwise write Not applicable. -->
+- Design question: the single question the prototype answers.
+- Run command: `command` for the throwaway prototype.
+- Validated decision: the answer; only this decision enters the todo list.
+
 ### Todo List
 1. `file/path` - specific action, expected outcome, risk level.
 2. `file/path` - specific action, expected outcome, risk level.
