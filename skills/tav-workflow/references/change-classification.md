@@ -1,7 +1,7 @@
 # 统一变更分类标准
 
-**版本**: 1.1.0  
-**适用 Skills**: tav-workflow 3.20.0+, spec-driven-develop 1.29.0+, write-notes-like-deepseek 1.0.0+  
+**版本**: 1.2.0  
+**适用 Skills**: tav-workflow 3.21.0+, spec-driven-develop 1.30.0+, write-notes-like-deepseek 1.0.0+  
 **最后更新**: 2026-10-27
 
 ## 目的
@@ -47,7 +47,7 @@
 ```
 开始
   ↓
-是否只是调参数/改文案/修拼写，且不触及运行时/安全/数据/公共契约？
+是否只是调参数/改文案/修拼写，且不触及运行时/安全/数据/公共契约？（调参数不得改变运行时默认或公共配置语义）
   ├─ 是 → L0（轻量 TAV 单遍）
   └─ 否 ↓
       ↓
@@ -67,13 +67,14 @@
 | 请求 | 信号 | 分类 |
 |------|------|------|
 | "Fix typo in error message" | 0 | L0 |
-| "Bump timeout from 3s to 5s" | 0 | L0 |
+| "Fix a documentation-only default note" | 0 | L0 |
 | "Update README with new API endpoint" | 0 | L0 |
 
 ### L1 案例
 
 | 请求 | 信号 | 分类 |
 |------|------|------|
+| "Bump timeout from 3s to 5s" | 0（单文件，但改变运行时默认） | L1 |
 | "Fix null pointer in UserService" | 0（单模块、局部） | L1 |
 | "Add email validation to signup form" | 0（单模块、<10 文件） | L1 |
 | "Refactor AuthController to use strategy pattern" | S3（单模块内的结构决策） | L1 |
@@ -171,6 +172,7 @@
 |-------------------------|--------------|---------------------|---------------------------|
 | 1.0.0 | 3.20.0+ | 1.29.0+ | 1.0.0+ |
 | 1.1.0 | 3.20.0+ | 1.29.0+ | 1.0.0+ |
+| 1.2.0 | 3.21.0+ | 1.30.0+ | 1.0.0+ |
 
 ---
 

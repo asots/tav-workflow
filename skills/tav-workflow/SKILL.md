@@ -5,9 +5,9 @@ license: MIT
 metadata:
   version: 3.21.0
 compatibility:
-  spec-driven-develop: ">=1.29.0"  # spec-tav/v1 handoff contract
+  spec-driven-develop: ">=1.30.0"  # spec-tav/v1 handoff contract
   write-notes-like-deepseek: "*"    # Phase 4 knowledge consolidation
-  open-code-review: ">=1.0.0"       # Verifier Standards axis, delegation only; requires ocr CLI >=1.9.0
+  open-code-review: ">=1.1.0"       # Verifier Standards axis, delegation only; requires ocr CLI >=1.9.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -46,7 +46,7 @@ Choose the smallest workflow that is still safe. See `references/change-classifi
 
 | Tier | Scope | Required workflow |
 |------|-------|-------------------|
-| L0 | Micro change, localized single-file patch, simple config value | Lightweight TAV in a single pass: cite evidence, edit, run a baseline check. No state file, no templated phase outputs. |
+| L0 | Micro change, localized single-file patch, non-behavioral config value | Lightweight TAV in a single pass: cite evidence, edit, run a baseline check. No state file, no templated phase outputs. A config value change that alters runtime defaults or public configuration semantics is L1, not L0. |
 | L1 | Standard bug fix or feature touching multiple files | Full TAV: Thinker plan, Actor implementation, quality gates, Verifier review. |
 | L2 | Work satisfying at least two L2 escalation signals below; common examples include broad architecture, migration, auth, schema, or distributed-flow overhauls | Run `spec-driven-develop` first; then execute independent scoped tasks with TAV. |
 
@@ -105,7 +105,7 @@ For L1 tasks, check for `.tav/state.json` in the target project root before any 
 - If it describes a different task, ask the user before replacing or archiving it.
 - If it does not exist, start fresh.
 
-For every tier, also check for `docs/progress/MASTER.md` in the target project. If it contains the exact `**Workflow State**: archived` marker, it is a Spec-Driven tombstone rather than an active plan, and TAV never enters spec-driven task mode from it. When `Pending Operations` is `none`, the current request proceeds as a standalone TAV task. When pending operations are listed, they block only a request to continue or finish that archived run: return the archive pointer and exact next action to the Spec-Driven orchestrator, or, when no orchestrator is running, stop and tell the user to resume the run with `spec-driven-develop`; never perform the pending operations inside a TAV cycle. An unrelated request proceeds as a standalone TAV task and lists the pending operations in the final report. Otherwise, if MASTER exists and the current task belongs to that active plan, follow `references/spec-driven-interop.md` for task intake, write-back, and state ownership.
+For every tier, also check for `docs/progress/MASTER.md` in the target project. If it contains the `**Workflow State**: archived` marker (the tombstone template prefixes the line with `> `), it is a Spec-Driven tombstone rather than an active plan, and TAV never enters spec-driven task mode from it. When `Pending Operations` is `none`, the current request proceeds as a standalone TAV task. When pending operations are listed, they block only a request to continue or finish that archived run: return the archive pointer and exact next action to the Spec-Driven orchestrator, or, when no orchestrator is running, stop and tell the user to resume the run with `spec-driven-develop`; never perform the pending operations inside a TAV cycle. An unrelated request proceeds as a standalone TAV task and lists the pending operations in the final report. Otherwise, if MASTER exists and the current task belongs to that active plan, follow `references/spec-driven-interop.md` for task intake, write-back, and state ownership.
 
 When a resumable TAV state has a non-null `origin.spec_run_id`, confirm that its run ID, task-card ID, delivery-batch ID, and rollback boundary still match the active MASTER/task card before resuming. A mismatch is different-task evidence: ask before replacing or archiving the state; never silently attach it to another plan.
 
@@ -225,9 +225,9 @@ Do not merge the axes into one score: a change can satisfy standards while imple
 
 **OCR Integration for the Standards Axis (optional)**:
 
-When `ocr` is available (`ocr --version`, open-code-review v1.9.0+), the Standards axis uses delegation mode, which calls no LLM: `ocr delegate preview --format json` lists the reviewable files (including untracked ones, or a range with `--from`/`--to`), and `ocr delegate rule --format json <paths>` resolves their rule groups. Review every listed file against its rule group and record each as reviewed or skipped with a reason. Delegation never replaces the Spec axis, machine gates, or security review. If `ocr` is missing or older, run the manual Standards pass unchanged and never install it during a review.
+When the `ocr` CLI is on PATH, the Standards axis uses the `open-code-review-delegate` skill (or `ocr delegate` directly). Delegation mode calls no LLM: `ocr delegate preview --format json` lists the reviewable files (staged, unstaged, and untracked by default; use `--from`/`--to` for a range), and `ocr delegate rule --format json <paths>` resolves their rule groups. Review every listed file against its rule group and end each as reviewed or skipped with a reason. Do not use the `open-code-review` skill's LLM review path during a TAV review. Probe `ocr --version` and `ocr delegate --help`; if either is unavailable, run the manual Standards pass unchanged and never install OCR during a review. Delegation never replaces the Spec axis, machine gates, or security review.
 
-Read `references/implementation-guide.md` § "Two-axis review mechanics" for the full mechanics; the delegation commands are documented in the installed `open-code-review-delegate` skill.
+Read `references/implementation-guide.md` § "Two-axis review mechanics" for the full mechanics.
 
 ### Security-sensitive branch
 
@@ -253,7 +253,9 @@ Only complete after verification gates pass or are explicitly documented as unav
 
 ### Knowledge consolidation
 
-Before writing the final report, evaluate whether this cycle produced durable engineering knowledge. Capture at most 1-3 concise rules per cycle; most tasks produce none — zero captures is the default outcome, not a failure. L0 tasks skip templated phase outputs but not the capture signals — a single-file patch can still hit a dependency gotcha or a user correction.
+Before writing the final report, evaluate whether this cycle produced durable engineering knowledge. Capture at most 1-3 concise memory or instruction rules per cycle; most tasks produce none — zero captures is the default outcome, not a failure. L0 tasks skip templated phase outputs but not the capture signals — a single-file patch can still hit a dependency gotcha or a user correction.
+
+These capture signals govern memory and instruction captures only. Decision-note necessity is owned by `write-notes-like-deepseek`'s red line, not by this signal list: a non-trivial change is recorded even when no capture signal fires.
 
 Capture only when at least one signal holds:
 
@@ -275,14 +277,20 @@ Write target — resolve the memory surface before choosing a file. Items 1-3 ar
 1. **Existing governance or declared project memory surface** — in a spec-driven project, `docs/progress/MASTER.md` "Governance Status" wins; otherwise use the project's already declared memory surface. Do not create a competing source.
 2. **The platform's native project memory** — the default when no existing project declaration takes precedence and native memory is available.
 3. **A repo-local fallback** (`docs/memory/`) — only when the project already declares it or the user explicitly selects it. When selected, use one entry per file plus a `MEMORY.md` index line; commit it with the repository.
-4. **Domain surfaces** (`CONTEXT.md` glossary; decision notes) — confirmed canonical terms go to the glossary through the `domain-modeling` skill when available. Decisions that are costly to reverse, surprising without context, and the result of a genuine trade-off go to a decision note through the `write-notes-like-deepseek` skill, which owns the note location, format, verification gate, and archival; when that skill is unavailable, list the decision as a final-report candidate instead of hand-writing a note. Do not duplicate terms or decisions into general memory. Inside a TAV cycle, the capture test above decides whether a decision note is written; `write-notes-like-deepseek` governs only where and how. The note is written in Phase 4, after the change exists (the Thinker stays read-only), and a change that implements an existing proposed note moves it to implemented in the same change.
+4. **Domain surfaces** (`CONTEXT.md` glossary; decision notes) — confirmed canonical terms go to the glossary through the `domain-modeling` skill when available. Decision-note necessity is owned by the `write-notes-like-deepseek` skill's red line, not by the capture signals above: if the change is non-trivial under that skill's definition, write the note even when no capture signal fires. That skill owns the note location, format, verification gate, and archival; when it is unavailable, list the decision as a final-report candidate instead of hand-writing a note. Do not duplicate terms or decisions into general memory. The note is written in Phase 4, after the change exists (the Thinker stays read-only), and a change that implements an existing proposed note moves it to implemented in the same change.
 5. **An existing instruction surface** (`CLAUDE.md`, `AGENTS.md`, or an existing platform rule file) — high-bar exception, only for a rule that must be unconditionally present in every session. Add at most one line; link to the resolved memory surface for detail.
 
 If the knowledge fits none of these, list the candidate in the final report. Do not create ad-hoc files outside the resolved memory surface; decision notes written through the `write-notes-like-deepseek` skill are the sanctioned exception. Directory layout and operational mechanics (entry format, dedupe, append discipline) are in `references/implementation-guide.md` § "Knowledge Consolidation".
 
+### Note maintenance and verification
+
+Before completing, check existing implemented notes (using the decision-record evidence gathered in Phase 1) for facts this cycle changed. If the diff renames or moves a symbol, file, module, changes a documented default, command, or configuration key, update every affected implemented note in place — never create a second note for the same decision — and include those edits in the same diff. This maintenance is not a new capture and is not subject to the capture signals above.
+
+After writing or editing any note, run the `write-notes-like-deepseek` verification gate: `npm run verify-notes` when the host configures it; otherwise run the skill's three scripts from the host project root with `npx tsx <write-notes-skill-dir>/scripts/verify-agent-note-tree.ts`, `npx tsx <write-notes-skill-dir>/scripts/verify-agent-note-format.ts`, and `npx tsx <write-notes-skill-dir>/scripts/verify-archived-agent-notes.ts`. Record the result; a failing gate blocks completion.
+
 ### Post-consolidation verification
 
-When Phase 4 writes or updates a memory, instruction, glossary, or decision-note surface, rerun `git diff` and `git status --porcelain` after that write, inspect the newly changed hunk or file, and run the narrowest available documentation/static validation. Recheck the added material for secrets and sensitive evidence. The Phase 3 verdict covers the implementation diff; do not claim it automatically verifies documentation written afterwards.
+When Phase 4 writes or updates a memory, instruction, glossary, or decision-note surface, rerun `git diff` and `git status --porcelain` after that write, inspect the newly changed hunk or file, and run the narrowest available documentation/static validation — including the note gate above when a note changed. Recheck the added material for secrets and sensitive evidence. The Phase 3 verdict covers the implementation diff; do not claim it automatically verifies documentation written afterwards.
 
 ### Final report
 
@@ -308,12 +316,14 @@ Use this final format when files were modified. Render all headings in the user'
 - Practical next steps.
 ```
 
-When knowledge consolidation wrote to a memory or instruction surface, append this section to the report. Omit it entirely when nothing was captured, keeping the report identical to the global standard format:
+When knowledge consolidation wrote to a memory, instruction, or decision-note surface, append this section to the report. Omit it entirely when nothing was captured, keeping the report identical to the global standard format:
 
 ```markdown
 ## 知识沉淀
-- `surface or file` - rule captured, one line per rule.
+- `surface or file` - rule or decision captured, one line per item.
 ```
+
+When a note was written or edited through `write-notes-like-deepseek`, fold that skill's semantic self-check result into the `知识沉淀` section, or into `剩余风险` when a gap remains. Do not append a separate note report.
 
 Report only measurable facts. File and line counts come from `git diff --stat` plus the untracked (`??`) files in `git status --porcelain`; never estimate token usage or wall-clock duration.
 
@@ -391,6 +401,7 @@ Read these on demand, not upfront:
 - `examples/rate-limiting.md` - full L1 walkthrough including state file evolution.
 - `examples/refactoring.md` - behavior-preserving extraction with plan-mismatch recovery.
 - `examples/l0-quick-patch.md` - L0 single-pass patch without state or templated phase outputs.
+- `examples/l1-with-ocr-and-note.md` - L1 cycle using the OCR delegate for the Standards axis and a decision note in Phase 4.
 - `examples/two-strike-escalation.md` - the second consecutive same-key failure and the escalation report.
 
 ---

@@ -13,10 +13,10 @@ Select verification commands from repository evidence. Run only commands the pro
 | `Cargo.toml` | `cargo fmt --check`, `cargo clippy`, `cargo test` |
 | `go.mod` | `go test ./...`, `go vet ./...` when applicable |
 | `pom.xml` / `build.gradle` | `mvn -q test`, `./gradlew test`; configured style/check tasks |
-| `*.csproj` / `*.sln` | `dotnet build`, `dotnet test`; `dotnet format --verify-no-changes` when available |
+| `*.csproj` / `*.sln` | `dotnet test`; `dotnet format --verify-no-changes` when available |
 | `Gemfile` / `*.rb` | `bundle exec rake test` or `bundle exec rspec`; `rubocop` when configured |
 | `composer.json` | `composer test` or `vendor/bin/phpunit`; configured lint/style task |
-| `CMakeLists.txt` (C/C++) | configured build plus `ctest`; infer sanitizer/clang-tidy from config |
+| `CMakeLists.txt` (C/C++) | `ctest` when a build directory is already configured; otherwise inspect the documented test command; infer sanitizer/clang-tidy from config |
 | `pubspec.yaml` (Dart/Flutter) | `flutter analyze`, `flutter test` |
 | Other stacks | Inspect CI, README, Makefile, and project scripts; never invent commands |
 
@@ -25,7 +25,7 @@ Select verification commands from repository evidence. Run only commands the pro
 | Evidence | Typical commands |
 |----------|------------------|
 | `.github/workflows/*.yml` | `actionlint` if available; otherwise inspect YAML syntax and secret references |
-| `Dockerfile` / `docker-compose.yml` | `docker build` and `docker compose config` when safe and configured |
+| `Dockerfile` / `docker-compose.yml` | `docker compose config` when safe and configured; do not run `docker build` as a verification gate without explicit build authorization |
 | `*.tf` / `*.tofu` | `terraform fmt -check`, `terraform validate`; `terraform plan` only in a prepared environment |
 | `Chart.yaml` / `values.yaml` | `helm lint`, `helm template` |
 | Generic `*.yml` / `*.yaml` | Configured YAML/schema linter |
@@ -34,6 +34,7 @@ Select verification commands from repository evidence. Run only commands the pro
 ## Safety and reporting
 
 - Start with the actual `git diff`, then select the narrowest relevant gates.
+- Respect the host build policy: do not run a build as a verification gate unless the user explicitly authorizes build verification; prefer test, lint, typecheck, or the narrowest non-build check.
 - Never run `terraform apply` or `kubectl apply` as verification; they mutate external state.
 - Never use production mutations, external messages, payments, deployments, or resource creation as a verification or diagnostic command. Prefer local, test, replay, or explicitly authorized sandbox environments.
 - If no reliable command exists, say so under skipped checks. Never report a check as passed when it was not run.
