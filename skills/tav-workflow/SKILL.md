@@ -3,7 +3,7 @@ name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
 license: MIT
 metadata:
-  version: 3.18.0
+  version: 3.19.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -217,7 +217,7 @@ Machine gates prove that configured checks ran; they do not prove that the right
 1. **Standards** — compare the diff with repository instruction and coding-standard sources. Project rules override generic heuristics. Where tooling does not already enforce the issue, look for judgment-call smells such as unclear naming, duplicated logic, misplaced responsibility, data clumps, repeated conditionals, shotgun/divergent change, speculative generality, long navigation chains, delegation-only middle layers, or inheritance that does not fit. Label heuristics as possible smells, not hard violations.
 2. **Spec** — compare the diff with the task definition and acceptance criteria. Identify requested behavior that is missing or partial, behavior added without authorization, and implementation that appears present but does not satisfy the requirement.
 
-Do not merge the axes into one score: a change can satisfy standards while implementing the wrong thing, or satisfy the spec while violating project rules. When independent reviewer agents are available and their cold-start cost is justified, the axes may run in parallel; otherwise the Verifier performs two explicit passes. This review supplements, never replaces, tests, type/lint checks, compatibility review, security review, and configuration/IaC validation.
+Do not merge the axes into one score: a change can satisfy standards while implementing the wrong thing, or satisfy the spec while violating project rules. When independent reviewer agents are available and their cold-start cost is justified, the axes may run in parallel; otherwise the Verifier performs two explicit passes. This review supplements, never replaces, tests, type/lint checks, compatibility review, security review, and configuration/IaC validation. When the `ocr` CLI (open-code-review, v1.9.0 or later) is on PATH, the Standards axis uses its delegate mode to select the reviewable files and their rule groups; see `references/implementation-guide.md` § "Two-axis review mechanics".
 
 ### Security-sensitive branch
 

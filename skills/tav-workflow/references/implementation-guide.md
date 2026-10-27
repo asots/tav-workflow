@@ -91,6 +91,8 @@ Report only measurable facts:
 - Spec evidence cites the task definition or acceptance criterion and the changed hunk or missing behavior. Report missing/partial work, unauthorized scope, and semantically wrong implementations separately.
 - Preserve the separation with explicit `Standards Review` and `Spec Review` sections in the Verifier output; do not hide either axis inside a generic verification row.
 - For hard bugs, rerun both the minimized regression proof and the original feedback loop. Search for the instrumentation tag and verify that every diagnostic probe/harness was removed; any persistent regression proof must be a separately planned test in the normal Actor diff, never retained diagnostic residue.
+- Optional OCR delegate (open-code-review). Detect it with `ocr --version`; when it is missing or older than v1.9.0, skip OCR and do the manual Standards pass, and never install it during a review. Otherwise run `ocr delegate preview --format json` from the repository root to list the reviewable files (staged, unstaged, and untracked by default; `--from <ref> --to <ref>` or `-c <commit>` for a range or commit), then `ocr delegate rule --format json <paths>` for their rule groups.
+- Review each reviewable file against its rule group (tracked files through `git diff`, untracked files read in full) and end it as reviewed or skipped with a reason; record that coverage under Standards Review. Delegate mode calls no LLM: OCR only selects files and resolves rules, and the Verifier keeps the judgment, the Spec axis, machine gates, and security review.
 
 ## Knowledge Consolidation
 

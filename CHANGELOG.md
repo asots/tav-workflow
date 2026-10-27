@@ -1,5 +1,11 @@
 # TAV Workflow Changelog
 
+## Version 3.19.0 (2026-10-27)
+
+### Optional open-code-review in the Verifier
+
+- **Added**: When the `ocr` CLI (open-code-review, v1.9.0 or later) is on PATH, the Verifier's Standards axis uses its delegate mode to select reviewable files, including untracked ones, and their rule groups; otherwise the manual pass applies. Detection is a shell `ocr --version` check, not an agent-specific mechanism. Delegate mode calls no LLM and never replaces the Spec axis, machine gates, or security review. `tests/scenarios.md` adds rows 18-19.
+
 ## Version 3.18.0 (2026-10-27)
 
 ### Review fixes: failure keys, decision-note ownership, spec task cards
