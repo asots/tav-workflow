@@ -6,7 +6,7 @@ English | [简体中文](README.zh-CN.md)
 
 TAV (Think-Act-Verify) is a structured workflow for scoped software changes. It separates analysis, execution, and verification so that every non-trivial edit is evidence-based, minimal, and checked before completion.
 
-**Version**: 3.20.0
+**Version**: 3.21.0
 **Status**: Stable
 
 The authoritative specification lives in [SKILL.md](skills/tav-workflow/SKILL.md). This README is an overview for humans; schemas, command tables, and output contracts are defined once in the skill file and referenced from here.
@@ -124,5 +124,5 @@ If `docs/memory/` is selected as the repository's memory surface, commit it with
 
 ---
 
-**TAV Workflow v3.20.0**
+**TAV Workflow v3.21.0**
 *Think-Act-Verify: evidence-based change, minimal execution, verified completion.*

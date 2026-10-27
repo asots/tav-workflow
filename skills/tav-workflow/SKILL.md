@@ -3,11 +3,11 @@ name: tav-workflow
 description: Use for scoped code changes, bug fixes, configuration updates, feature adjustments, and local refactors that need evidence-based analysis, minimal execution, and verification. Use spec-driven-develop first only when at least two L2 escalation signals hold; a bare rewrite, migration, or refactor keyword is not sufficient.
 license: MIT
 metadata:
-  version: 3.20.0
+  version: 3.21.0
 compatibility:
   spec-driven-develop: ">=1.29.0"  # spec-tav/v1 handoff contract
   write-notes-like-deepseek: "*"    # Phase 4 knowledge consolidation
-  open-code-review: ">=1.9.0"       # Verifier Standards axis (delegate mode optional, v1.10.0+)
+  open-code-review: ">=1.0.0"       # Verifier Standards axis, delegation only; requires ocr CLI >=1.9.0
 ---
 
 # TAV Workflow - Think, Act, Verify
@@ -42,7 +42,7 @@ Use this skill to prevent unplanned edits, hidden assumptions, and unverified co
 
 ## Task Tiering
 
-Choose the smallest workflow that is still safe. See `../../shared-references/change-classification.md` for detailed definitions aligned with WNLD and SDD.
+Choose the smallest workflow that is still safe. See `references/change-classification.md` for detailed definitions aligned with WNLD and SDD.
 
 | Tier | Scope | Required workflow |
 |------|-------|-------------------|
@@ -65,7 +65,7 @@ A one-line typo, display-text correction, or local metadata change stays L0 only
 
 ### L2 Escalation Signals
 
-Keep this list in sync with `spec-driven-develop` § "Escalation Signals" and `../../shared-references/change-classification.md` — all workflows must apply the same test. Escalate to L2 only when **at least two** of these hold; otherwise stay at L0/L1:
+Keep this list in sync with `spec-driven-develop` § "Escalation Signals" and `references/change-classification.md` — all workflows must apply the same test. Escalate to L2 only when **at least two** of these hold; otherwise stay at L0/L1:
 
 - The change spans 3+ modules/subsystems, or breaks a public API/schema contract.
 - The work will realistically span multiple sessions or exceed ~10 files.
@@ -223,27 +223,11 @@ Machine gates prove that configured checks ran; they do not prove that the right
 
 Do not merge the axes into one score: a change can satisfy standards while implementing the wrong thing, or satisfy the spec while violating project rules. When independent reviewer agents are available and their cold-start cost is justified, the axes may run in parallel; otherwise the Verifier performs two explicit passes. This review supplements, never replaces, tests, type/lint checks, compatibility review, security review, and configuration/IaC validation.
 
-**OCR Integration for Standards Axis**:
+**OCR Integration for the Standards Axis (optional)**:
 
-When the `ocr` CLI (open-code-review v1.9.0+) is available, use it for the Standards axis:
+When `ocr` is available (`ocr --version`, open-code-review v1.9.0+), the Standards axis uses delegation mode, which calls no LLM: `ocr delegate preview --format json` lists the reviewable files (including untracked ones, or a range with `--from`/`--to`), and `ocr delegate rule --format json <paths>` resolves their rule groups. Review every listed file against its rule group and record each as reviewed or skipped with a reason. Delegation never replaces the Spec axis, machine gates, or security review. If `ocr` is missing or older, run the manual Standards pass unchanged and never install it during a review.
 
-```bash
-# Extract context from Thinker output
-context="Task: <task description>. Root cause: <diagnosis summary>"
-
-# Run OCR with business context
-ocr review --audience agent \
-  --background "$context" \
-  --output /tmp/ocr_standards.json
-```
-
-Filter OCR output by severity:
-- `critical` → escalate TAV to critical risk, block completion
-- `high` → must fix before Verifier approval
-- `medium` → fix or document as known limitation
-- `low` → discard as likely false positive
-
-See `../../open-code-review/skills/open-code-review/SKILL.md` § "Integration with TAV and Spec-Driven Development" for detailed invocation patterns and the `references/implementation-guide.md` § "Two-axis review mechanics" for delegate mode usage (v1.10.0+).
+Read `references/implementation-guide.md` § "Two-axis review mechanics" for the full mechanics; the delegation commands are documented in the installed `open-code-review-delegate` skill.
 
 ### Security-sensitive branch
 
@@ -397,6 +381,7 @@ Read these on demand, not upfront:
 
 - `references/branches.md` - full contracts for the hard-bug diagnosis, diagnostic Actor micro-loop, design-prototype, and TDD execution branches; read when a branch trigger fires.
 - `references/spec-driven-interop.md` - execution half of the `spec-tav/v1` handoff contract; read when an active MASTER.md is present.
+- `references/change-classification.md` - L0/L1/L2 tiers and the L2 escalation signals; kept in sync with spec-driven-develop and write-notes-like-deepseek.
 - `references/escalation.md` - failure-counting rules and the `[ESCALATION-REPORT]` format; read when a failure first repeats.
 - `references/templates/state.json` - read before creating `.tav/state.json` for the first time.
 - `references/templates/thinker-output.md`, `actor-output.md`, `verifier-output.md` - canonical L1 phase-output schemas; read the matching template before producing each phase output.

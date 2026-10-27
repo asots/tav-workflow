@@ -1,5 +1,13 @@
 # TAV Workflow Changelog
 
+## Version 3.21.0 (2026-10-27)
+
+### OCR delegation contract and bundled change classification
+
+- **Changed**: The Verifier's optional OCR integration now documents delegation mode only — `ocr delegate preview --format json` and `ocr delegate rule --format json <paths>`. OCR selects files and resolves rules without calling an LLM; the Verifier keeps the Standards judgment, the Spec axis, machine gates, and security review.
+- **Fixed**: The previous text pointed at a broken cross-repository SKILL path and at a non-existent `ocr review --delegate` flag.
+- **Added**: `references/change-classification.md` is bundled with the skill and linked from Task Tiering and the L2 escalation signals.
+
 ## Version 3.20.0 (2026-10-27)
 
 ### Review fixes: untracked files, Phase 0 scope, recorded decisions
