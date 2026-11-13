@@ -1,12 +1,12 @@
 # 统一变更分类标准
 
-**版本**: 1.2.0  
-**适用 Skills**: tav-workflow 3.21.0+, spec-driven-develop 1.30.0+, write-notes-like-deepseek 1.0.0+  
-**最后更新**: 2026-10-27
+- **版本**: 1.3.0
+- **适用 Skills**: tav-workflow 3.22.0+, spec-driven-develop 1.31.0+, write-notes-like-deepseek 1.1.0+
+- **最后更新**: 2026-11-13
 
 ## 目的
 
-为 tav-workflow 和 spec-driven-develop 提供统一的变更分类标准，避免两个 skills 使用不同的升级判定规则。
+为 tav-workflow、spec-driven-develop 和 write-notes-like-deepseek 提供统一的变更分类标准，避免三个 skills 使用不同的升级判定规则。
 
 ---
 
@@ -17,6 +17,8 @@
 | **L0** | 微调 | 单文件、~30 行以内、无运行时/契约/安全影响 | 轻量 TAV 单遍：引用证据、编辑、跑基线检查；不建状态文件、不写阶段模板 |
 | **L1** | 任务 | 单模块、明确边界、单 TAV 周期可完成 | tav-workflow |
 | **L2** | 项目 | 跨模块、架构决策、需要分解编排 | spec-driven-develop |
+
+> 笔记必要性：L0 免**新建**决策笔记；但既有 implemented 笔记中被本次改动触及的符号、路径、默认值仍须原地同步，见 `write-notes-like-deepseek` §4。L0 不是“跳过 TAV”，而是单遍轻量 TAV。
 
 ---
 
@@ -47,8 +49,8 @@
 ```
 开始
   ↓
-是否只是调参数/改文案/修拼写，且不触及运行时/安全/数据/公共契约？（调参数不得改变运行时默认或公共配置语义）
-  ├─ 是 → L0（轻量 TAV 单遍）
+四条 L1 边界都不触发？（不触及安全敏感面；不影响被编辑文件之外的运行时；不需要新增或加强测试；预计 ≤30 行且只改 1 个文件）
+  ├─ 是 → L0（轻量 TAV 单遍：引用证据、编辑、跑基线检查；不建状态文件、不写阶段模板）
   └─ 否 ↓
       ↓
 计算满足的 L2 信号数量（S1-S4）
@@ -57,6 +59,8 @@
   ├─ 是 → L2（使用 spec-driven-develop）
   └─ 否 → L1（使用 tav-workflow）
 ```
+
+> 调参、改文案、修拼写只有在四条 L1 边界都不触发时才判 L0；改变运行时默认或公共配置语义按 L1 处理。四条边界的权威定义见 `tav-workflow` SKILL § "L0 vs L1 boundary"。
 
 ---
 
@@ -123,9 +127,9 @@
 读取: references/change-classification.md（本 skill 的 references/ 目录内）
 
 判定流程:
-1. 检查是否为 L0（调参数、改文案、修拼写）
-   - 是 → 直接执行，跳过 TAV
-   - 否 → 继续
+1. 检查四条 L0/L1 边界（见本文 "分类决策树"）
+   - 四条都不触发 → L0：轻量 TAV 单遍（引用证据、编辑、跑基线检查；不建状态文件、不写阶段模板）
+   - 任一触发 → 继续
 
 2. 评估 L2 信号（S1-S4）
    - 满足 ≥ 2 个 → 提示使用 spec-driven-develop
@@ -145,7 +149,7 @@
 
 验证流程:
 1. 评估 L2 信号
-   - 满足 < 2 个 → 拒绝，提示使用 tav-workflow
+   - 满足 < 2 个 → 不进入本流程，交回 tav-workflow（L0 按轻量单遍执行）
    - 满足 ≥ 2 个 → 继续 Phase 1
 
 2. 告知用户:
@@ -164,7 +168,7 @@
    - `tav-workflow/SKILL.md` § "Task Tiering" 与 § "L2 Escalation Signals"
    - `spec-driven-develop/SKILL.md` § "Escalation Signals"
    - `write-notes-like-deepseek/SKILL.md` § "红线"
-3. 将本文件同步到每个 skill 的 `references/change-classification.md`，三份内容必须逐字一致
+3. 将本文件同步到每个 skill 的 `references/change-classification.md`，三份内容必须逐字一致；两个仓库的 `scripts/verify.ps1` 会校验 SHA256，不一致即失败
 
 ### 版本兼容性
 
@@ -173,6 +177,7 @@
 | 1.0.0 | 3.20.0+ | 1.29.0+ | 1.0.0+ |
 | 1.1.0 | 3.20.0+ | 1.29.0+ | 1.0.0+ |
 | 1.2.0 | 3.21.0+ | 1.30.0+ | 1.0.0+ |
+| 1.3.0 | 3.22.0+ | 1.31.0+ | 1.1.0+ |
 
 ---
 
@@ -191,9 +196,9 @@
       满足 2 个 L2 信号，建议使用 spec-driven-develop 分解后执行。"
 ```
 
-### Q2: 两个 skills 对同一任务的分类不一致怎么办？
+### Q2: 三个 skills 对同一任务的分类不一致怎么办？
 
-**A**: 这不应该发生。两个 skills 都读取同一份 `change-classification.md`，使用完全相同的判定规则。如果发生不一致，说明其中一个 skill 的 Phase 0 实现有 bug，需要修复。
+**A**: 这不应该发生。三个 skills 都读取同一份 `change-classification.md`，使用完全相同的判定规则。如果发生不一致，说明其中一个 skill 的 Phase 0 实现有 bug，需要修复。
 
 ### Q3: "整体重构"这种词一定是 L2 吗？
 
@@ -218,4 +223,4 @@
 
 **文档所有者**: tav-workflow, spec-driven-develop, write-notes-like-deepseek  
 **审核周期**: 每季度或重大变更时  
-**反馈渠道**: 在使用中遇到分类模糊的案例时，记录到 `.agents/notes/proposed/classification-edge-cases.md`
+**反馈渠道**: 在使用中遇到分类模糊的案例时，记录到 `.agents/notes/proposed/process/yyyy-mm-dd-classification-edge-cases.md`（日期为首次提出日）

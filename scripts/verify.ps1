@@ -194,6 +194,24 @@ if (-not (Test-Path $specSkillPath)) {
   if ($script:fail -eq $failsBefore) { Ok 'tombstone fields match between tav Phase 0 and the spec progress template' }
 }
 
+# 6b. change-classification.md must be byte-identical across the three skill repos
+$ccTav = Join-Path $skillDir 'references/change-classification.md'
+$ccSpec = Join-Path (Join-Path $SpecPath 'plugins/spec-driven-develop/skills/spec-driven-develop') 'references/change-classification.md'
+$ccDsh = Join-Path (Join-Path $DshPath 'skills/write-notes-like-deepseek') 'references/change-classification.md'
+$ccPaths = @($ccTav, $ccSpec, $ccDsh)
+if (-not (Test-Path $ccTav)) { Fail 'tav change-classification.md missing' }
+elseif (@($ccPaths | Where-Object { -not (Test-Path $_) }).Count -gt 0) {
+  $msg = 'change-classification.md missing in a sibling repo - copy check skipped (pass -SpecPath/-DshPath to enable)'
+  if ($env:CI -eq 'true') { Fail $msg } else { Write-Host "WARN: $msg" -ForegroundColor Yellow }
+} else {
+  $canon = (Read-Text $ccTav) -replace "`r`n", "`n"
+  $failsBefore = $script:fail
+  foreach ($p in @($ccSpec, $ccDsh)) {
+    if (((Read-Text $p) -replace "`r`n", "`n") -cne $canon) { Fail "change-classification.md differs from the tav canonical copy: $p" }
+  }
+  if ($script:fail -eq $failsBefore) { Ok 'change-classification.md is byte-identical across the three skill repos' }
+}
+
 # 7. Decision-note contract with write-notes-like-deepseek: every .agents/notes/<folder>/
 # this skill names must be a lifecycle (or the archive) that DSH's tree gate accepts
 $dshSkillDir = Join-Path $DshPath 'skills/write-notes-like-deepseek'

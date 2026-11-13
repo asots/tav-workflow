@@ -20,7 +20,7 @@ When an active (non-tombstone) `docs/progress/MASTER.md` exists and the current 
 
 - Return `ready for batch integration` — do not create a task-level PR or use closing keywords. In orchestrator-direct execution, the orchestrator updates the Current Status and, after integrated validation plus the required authorization, performs closure through the batch PR's `Closes #N` line (or the LOCAL_ONLY checkbox). In a lane or delegated assignment, do not edit `MASTER.md`, an Issue, or a phase file.
 - Return one execution-event payload from observed TAV signals: Outcome, Rework, Plan returns, Unplanned dependencies, and Focused S.U.P.E.R result. Only the orchestrator records it once according to `spec-driven-develop` `references/adaptive-control.md`.
-- Return knowledge-consolidation candidates for the orchestrator to reconcile against "Governance Status" in MASTER.md. A lane or delegated TAV cycle never writes resolved memory or instruction surfaces directly.
+- Return knowledge-consolidation and decision-note candidates for the orchestrator to reconcile against "Governance Status" in MASTER.md. A lane or delegated TAV cycle never writes resolved memory, instruction surfaces, or a decision note directly: the orchestrator writes the note at Phase 4 in orchestrator-direct execution, or at batch integration from the returned candidates.
 - On `[ESCALATION-REPORT]` or a blocked state, return the event before pausing. Only the orchestrator records it in an authorized Issue comment or phase file and selects watch, replan, or rescope.
 
 **State ownership:**

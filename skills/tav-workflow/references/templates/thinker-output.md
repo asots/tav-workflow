@@ -14,6 +14,13 @@ Phase 1 -> Analyzing
 ### Analysis Summary
 - Root cause or implementation approach in 2-3 concise sentences.
 
+### Decision Candidates
+<!-- Optional. Fill when this cycle may produce a decision note; otherwise write Not applicable. -->
+- Candidate: the decision in one line.
+  - Class: feature / bug-fix / simplification / architecture / process / testing
+  - Alternatives: each real option — strongest case — why it was rejected.
+  - Evidence: `path:line-range` or command output.
+
 ### Hard-Bug Evidence
 <!-- Use when the hard-bug branch applies; otherwise write Not applicable. -->
 - Feedback command: `command`

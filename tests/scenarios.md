@@ -22,7 +22,7 @@ Rule cells cite a file under `skills/tav-workflow/` and a heading in it. `script
 | 14 | An intermittent failure with no obvious cause. | Hard-bug branch: build a red-capable feedback loop before theorizing. | `references/branches.md` § "Hard-bug diagnosis branch" |
 | 15 | Diagnosis needs temporary instrumentation in a source file. | Diagnostic Actor micro-loop: apply the probe, run it, remove it, and prove the baseline is restored; the Thinker stays read-only. | `references/branches.md` § "Diagnostic Actor micro-loop" |
 | 16 | A gate fails with TS2532 at `dashboard.ts:8`; after a fix attempt it fails with TS2532 at line 12. | The first failure is recorded already normalized (`TS2532`), so the second matches and triggers the two-strike rule. | `SKILL.md` § "Failure counting" |
-| 17 | An L1 fix changes a cross-file contract but is cheap to reverse and involves no genuine trade-off; `write-notes-like-deepseek` is installed. | No decision note: inside a TAV cycle the capture test decides, and it fails. | `SKILL.md` § "Knowledge consolidation" |
+| 17 | An L1 fix changes a cross-file contract but is cheap to reverse and involves no genuine trade-off; `write-notes-like-deepseek` is installed. | Decision note required: a cross-file contract change is non-trivial under the WNLD red line even when the three-question test fails; the questions only set priority. | `SKILL.md` § "Knowledge consolidation" |
 | 18 | The Verifier runs and `ocr` is not on PATH. | Manual Standards pass; OCR is not installed during the review. | `references/implementation-guide.md` § "Two-axis review mechanics" |
 | 19 | `ocr` is on PATH and `ocr delegate preview` lists an untracked new file. | The file is read in full, reviewed against its rule group, and marked reviewed or skipped with a reason. | `references/implementation-guide.md` § "Two-axis review mechanics" |
 | 20 | An L0 typo fix belongs to a task card of the active `docs/progress/MASTER.md` plan. | Phase 0 still runs the MASTER check: take intake from the task card and return the write-back payload; no `.tav/state.json` is created. | `SKILL.md` § "Phase 0: Continuity Check" |
@@ -31,3 +31,20 @@ Rule cells cite a file under `skills/tav-workflow/` and a heading in it. `script
 | 23 | The Actor creates a new test file and `ocr` is not on PATH. | The Verifier finds the untracked file through `git status --porcelain` and reads it in full; `git diff` alone would miss it. | `SKILL.md` § "Phase 3: Verifier - Closed-Loop Quality Gate" |
 | 24 | The diff removes a retry wrapper that an implemented decision note requires; the task card does not mention it. | Spec axis fails: the change contradicts a recorded decision the task does not supersede. | `SKILL.md` § "Two-axis review" |
 | 25 | Whether a wizard keeps partial input between steps is undecided, and the code cannot settle it. | Design-prototype branch: record the question, run command, and decision; the Verifier confirms no prototype code remains. | `references/branches.md` § "Design-prototype branch" |
+| 26 | An L1 fix corrects an obvious local off-by-one in one function; no cross-file contract, format, architecture, or test-strategy change; `write-notes-like-deepseek` is installed. | No decision note: the red line's local/mechanical exception applies; the three questions do not create a note requirement. | `SKILL.md` § "Knowledge consolidation" |
+
+## Smoke Set (run after any rule change)
+
+Walk these rows end-to-end and record pass/fail in the change report:
+
+- 1 — L0 typo: lightweight TAV, no state file, no note.
+- 2 — Security-sensitive one-liner: L1.
+- 4 — Cross-module auth migration: L2, SDD first.
+- 8 — Verified fix with no commit request: no branch/commit/push/PR.
+- 13 — Note needed but WNLD unavailable: final-report candidate only.
+- 17 — Cross-file contract with no trade-off: note still required.
+- 26 — Obvious local fix: no note.
+
+If a row's outcome no longer follows from its cited rule, treat it as a regression or update the row deliberately in the same change.
+
+Last walked: 2026-11-13 — all 7 pass; row 17 was corrected (a cross-file contract change requires a note even when no trade-off exists).

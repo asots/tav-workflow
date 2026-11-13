@@ -1,5 +1,17 @@
 # TAV Workflow Changelog
 
+## Version 3.22.0 (2026-11-13)
+
+### Decision-note ownership, L0 maintenance, and host declarations
+
+- **Changed**: A task-level decision note is written at TAV Phase 4 when the cycle runs standalone or the orchestrator executes it directly; a lane or delegated cycle returns candidates for batch integration. `references/spec-driven-interop.md` carries the lane rule.
+- **Changed**: Note maintenance applies to every tier, including L0. L0 avoids new notes, not in-place updates to existing implemented notes.
+- **Changed**: When the note gate cannot run because Node/tsx is unavailable, the written note stays in place and is reported as unverified; the candidate is listed as a final-report TODO, and a real gate failure still blocks. ADR hosts declare `decision-note gate: N/A (ADR host)` in their instruction surface and use the manual quality gate.
+- **Added**: The Thinker template carries an optional `Decision Candidates` field; Phase 4 consumes it instead of reconstructing alternatives.
+- **Changed**: `references/change-classification.md` 1.3.0 aligns the L0 quick path with the four L0/L1 boundaries and fixes the edge-case feedback path.
+- **Added**: Scenario 26 and the seven-row smoke set; scenario 17 now requires a note for a cross-file contract change even without a trade-off.
+- **Changed**: `scripts/verify.ps1` checks that the three `change-classification.md` copies are byte-identical. The compatibility floors are `spec-driven-develop >=1.31.0` and `write-notes-like-deepseek >=1.1.0`.
+
 ## Version 3.21.0 (2026-10-27)
 
 ### OCR delegation contract and bundled change classification
